@@ -1,19 +1,19 @@
 # Binance Bot Testnet 🤖
 
-Un bot de trading automatizado para **Binance Testnet**, diseñado con una arquitectura modular y estrategias basadas en indicadores técnicos como **EMA** (Media Móvil Exponencial) y **RSI** (Índice de Fuerza Relativa).  
-Permite analizar el mercado, ejecutar operaciones de prueba, gestionar el riesgo y registrar toda la actividad en logs detallados.
+Un bot de trading automatizado para **Binance Testnet**, diseñado con una arquitectura modular y una estrategia técnica propietaria basada en indicadores de análisis de mercado.  
+Permite analizar datos, ejecutar operaciones simuladas, gestionar el riesgo y registrar toda la actividad en logs detallados.
 
 ---
 
 ## 🚀 Características
 
-- ✅ Integración con **Binance Testnet** (API oficial)
-- 📊 Estrategia basada en **EMA y RSI**
-- 🧩 Arquitectura modular (core, data, services, utils)
-- ⚙️ Configuración sencilla mediante `.env` y `settings.py`
-- 🧠 Gestión de riesgo con **Take Profit (TP)** y **Stop Loss (SL)**
-- 🪵 Registro completo de logs (errores, ejecución)
-- 🔁 Sistema de reintento automático en caso de fallos de conexión
+- ✅ Integración con **Binance Testnet** (API oficial)  
+- 🧩 Arquitectura modular (core, data, services, utils)  
+- ⚙️ Configuración sencilla mediante `.env` y `settings.py`  
+- 🧠 Gestión de riesgo con **Take Profit (TP)** y **Stop Loss (SL)**  
+- 🪵 Registro completo de logs (errores y ejecución)  
+- 🔁 Sistema de reintento automático en caso de fallos de conexión  
+- 🔒 Estrategia privada no visible en el repositorio público  
 
 ---
 
@@ -31,16 +31,16 @@ binance_bot_testnet/
 │   ├── order_executor.py       # Ejecución de órdenes
 │   ├── risk_management.py      # Gestión de riesgo TP/SL
 │   ├── runner.py               # Bucle principal con reintentos
-│   └── strategy.py             # Lógica de estrategia (EMA y RSI)
+│   └── strategy.py             # Estrategia de trading (no pública)
 ├── data/
 │   └── price_fetcher.py        # Obtención de precios y velas OHLCV
 ├── services/
 │   └── binance_client.py       # Conexión con la API de Binance
 ├── utils/
-│   ├── logger.py               # Funciones de logging
-│   └── logger_setup.py         # Configuración del logger
+│   ├── logger.py               # Registro de operaciones
+│   └── logger_setup.py         # Configuración del sistema de logging
 └── logs/
-    ├── execution.log           # Registro de operaciones
+    ├── execution.log           # Registro de operaciones ejecutadas
     └── errors.log              # Registro de errores
 ```
 
@@ -48,10 +48,10 @@ binance_bot_testnet/
 
 ## ⚙️ Requisitos previos
 
-- Python **3.10+**
-- Una cuenta de **Binance Testnet**
-- Claves API de Testnet ([https://testnet.binance.vision/](https://testnet.binance.vision/))
-- Entorno virtual recomendado (`venv` o `conda`)
+- Python **3.10+**  
+- Una cuenta de **Binance Testnet**  
+- Claves API de Testnet: [https://testnet.binance.vision/](https://testnet.binance.vision/)  
+- Se recomienda usar un **entorno virtual** de Python (`venv` o `conda`)
 
 ---
 
@@ -64,20 +64,28 @@ git clone https://github.com/tuusuario/binance_bot_testnet.git
 cd binance_bot_testnet
 ```
 
-2. Instalar dependencias:
+2. Crear y activar un **entorno virtual** (aislado, no visual):
+
+```bash
+python -m venv venv
+source venv/bin/activate      # macOS / Linux
+venv\Scripts\activate         # Windows
+```
+
+3. Instalar dependencias:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Crear archivo `.env` en la raíz:
+4. Crear un archivo `.env` en la raíz (⚠️ no subirlo a GitHub):
 
 ```bash
 BINANCE_API_KEY=tu_api_key
 BINANCE_API_SECRET=tu_api_secret
 ```
 
-4. Configurar los parámetros de trading en `config/settings.py`:
+5. Configurar los parámetros de trading en `config/settings.py`:
 
 ```python
 SYMBOL = "BTCUSDT"
@@ -104,8 +112,7 @@ Salida esperada:
 🚀 Bot iniciado
 🧪 Conectado a Binance Spot TESTNET
 📊 Últimos precios de BTCUSDT:
-📈 RSI actual: 47.32
-📈 EMA ahora: 27350.12, EMA previa: 27310.84
+📈 Indicadores calculados correctamente
 ✅ Condición de entrada cumplida
 Ejecutando trade...
 ```
@@ -114,17 +121,12 @@ Ejecutando trade...
 
 ## 🧮 Estrategia de Trading
 
-El bot evalúa condiciones de entrada según:
+El bot utiliza una **estrategia técnica privada** desarrollada para pruebas en Binance Testnet.  
+Se basa en indicadores de **tendencia y momentum**, junto con reglas de gestión de riesgo dinámico.  
 
-```python
-rsi < 50 and ema_now > ema_prev
-```
+> ⚠️ Por motivos de privacidad y seguridad, la lógica exacta de la estrategia no se detalla públicamente.
 
-- **RSI (Relative Strength Index)** indica zonas de sobrecompra/sobreventa.  
-- **EMA (Exponential Moving Average)** identifica tendencias.  
-- Si el RSI está bajo (indica posible sobreventa) y la EMA sube, el bot ejecuta una **entrada larga** en Testnet.
-
-Los niveles de **Take Profit (TP)** y **Stop Loss (SL)** se calculan con porcentajes definidos en `settings.py`.
+Los niveles de **Take Profit (TP)** y **Stop Loss (SL)** se configuran mediante los porcentajes definidos en `config/settings.py`.
 
 ---
 
@@ -132,23 +134,47 @@ Los niveles de **Take Profit (TP)** y **Stop Loss (SL)** se calculan con porcent
 
 | Módulo | Descripción |
 |--------|--------------|
-| **core/** | Lógica de negocio: estrategias, riesgo, ejecución |
-| **services/** | Clientes externos (Binance API) |
-| **data/** | Fuentes de datos del mercado |
-| **utils/** | Logging, herramientas comunes |
-| **config/** | Parámetros globales de operación |
+| **core/** | Lógica de negocio: indicadores, ejecución y riesgo |
+| **services/** | Conexión y autenticación con la API de Binance |
+| **data/** | Descarga de datos OHLCV del mercado |
+| **utils/** | Logging, almacenamiento y registro de operaciones |
+| **config/** | Parámetros globales del bot |
 | **logs/** | Historial de ejecución y errores |
 
-El archivo `main.py` coordina el flujo completo: conexión → obtención de precios → cálculo de indicadores → evaluación de estrategia → ejecución de trade → logging.
+El archivo `main.py` coordina todo el flujo: conexión → datos → análisis → estrategia → ejecución → logging.
+
+---
+
+## 🧾 Logs e historial de operaciones
+
+El bot guarda toda su actividad en la carpeta `logs/`:
+
+```
+logs/
+├── execution.log   # Operaciones ejecutadas y flujo general
+└── errors.log      # Errores o excepciones ocurridas
+```
+
+Además, cada operación se registra en un archivo Excel:
+```
+excel/trades_history.xlsx
+```
+
+Este historial incluye:
+- Ticker, cantidad y tipo de orden  
+- Precio de entrada y salida  
+- Niveles de TP/SL  
+- PnL (ganancia/pérdida)  
 
 ---
 
 ## 🧠 Buenas prácticas
 
 - No reutilizar las claves de **producción** en testnet.  
-- Ajustar `EMA_PERIOD` y `RSI_PERIOD` según tu estrategia.  
-- Mantener los logs para diagnóstico (`logs/errors.log`).  
-- Usar entorno virtual para aislar dependencias.  
+- Ajustar los parámetros en `settings.py` según tus objetivos.  
+- Revisar regularmente los logs (`logs/errors.log`).  
+- Mantener el archivo `.env` fuera del repositorio.  
+- Usar siempre un entorno virtual para aislar dependencias.  
 - Realizar pruebas extensivas antes de operar con dinero real.
 
 ---
@@ -175,9 +201,9 @@ Puedes usarlo, modificarlo y distribuirlo libremente con la debida atribución.
 
 ## 📬 Contacto
 
-Desarrollado por Alejandro Llordén Rodríguez  
-📧 Email: allorden98@gmail.com 
-🌐 GitHub: https://github.com/Llordax
+Desarrollado por **Alejandro Llordén Rodríguez**  
+📧 Email: allorden98@gmail.com  
+🌐 GitHub: [https://github.com/Llordax](https://github.com/Llordax)
 
 ---
 

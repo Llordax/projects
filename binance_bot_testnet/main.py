@@ -20,6 +20,26 @@ from utils.logger_setup import logger
 
 
 def main():
+    """Función principal que ejecuta el flujo del bot de trading.
+
+    Esta función inicializa el cliente de Binance, obtiene los datos OHLCV
+    recientes, calcula los indicadores técnicos (RSI y EMA), evalúa las condiciones
+    de entrada mediante la estrategia definida y ejecuta la orden si se cumplen
+    los criterios.
+
+    Flujo general:
+        1. Inicializa cliente de Binance.
+        2. Descarga precios históricos del símbolo configurado.
+        3. Calcula indicadores RSI y EMA.
+        4. Verifica condiciones de entrada.
+        5. Ejecuta trade si se cumplen condiciones.
+
+    Logs:
+        - Registra cada paso en `utils.logger_setup.logger`.
+
+    Raises:
+        Exception: Si ocurre un error inesperado durante la ejecución principal.
+    """
     print("\n🚀 Bot iniciado")
     logger.info("Bot iniciado")
 
@@ -32,6 +52,7 @@ def main():
     print(df.tail(3))
     logger.info("Datos OHLCV obtenidos correctamente")
 
+    # Cálculo de indicadores técnicos
     df["ema"] = calculate_ema(df, EMA_PERIOD)
     df["rsi"] = calculate_rsi(df, RSI_PERIOD)
 
@@ -43,6 +64,7 @@ def main():
     print(f"📈 EMA ahora: {ema_now:.2f}, EMA previa: {ema_prev:.2f}")
     logger.info(f"Indicadores RSI={rsi:.2f}, EMA actual={ema_now:.2f}, EMA previa={ema_prev:.2f}")
 
+    # Evaluación de condiciones de entrada
     if check_entry(rsi, ema_now, ema_prev):
         print("✅ Condición de entrada cumplida")
         logger.info("Condición de entrada cumplida. Ejecutando trade...")
@@ -53,6 +75,12 @@ def main():
 
 
 if __name__ == "__main__":
+    """Punto de entrada del script.
+
+    Verifica la conexión con la cuenta de Binance antes de iniciar el bot.
+    En caso de éxito, muestra el balance disponible en la consola y
+    posteriormente ejecuta la función principal con un mecanismo de reintento.
+    """
     try:
         client = get_client()
         info = client.get_account()
@@ -62,6 +90,7 @@ if __name__ == "__main__":
                 print(f"{asset['asset']}: {asset['free']}")
         logger.info("Cuenta conectada y balance consultado correctamente")
 
+        # Ejecutar el bot con manejo de errores y reintentos
         run_with_retry(main, interval=10)
     except Exception as e:
         print(f"❌ Error crítico al iniciar: {e}")
