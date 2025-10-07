@@ -1,0 +1,8 @@
+2025-10-07 19:03:42,528 - INFO - Logger inicializado correctamente. Archivos de log creados en carpeta /logs
+2025-10-07 19:03:43,710 - CRITICAL - ❌ Claves API no encontradas en el archivo .env.
+2025-10-07 19:03:43,712 - CRITICAL - Error de configuración: Las claves BINANCE_API_KEY o BINANCE_API_SECRET no están definidas.
+2025-10-07 19:03:43,714 - ERROR - Error crítico al iniciar: Las claves BINANCE_API_KEY o BINANCE_API_SECRET no están definidas.
+2025-10-07 19:06:37,787 - INFO - Logger inicializado correctamente. Archivos de log creados en carpeta /logs
+2025-10-07 19:06:38,090 - CRITICAL - ❌ Claves API no encontradas en el archivo .env.
+2025-10-07 19:06:38,091 - CRITICAL - Error de configuración: Las claves BINANCE_API_KEY o BINANCE_API_SECRET no están definidas.
+2025-10-07 19:06:38,091 - ERROR - Error crítico al iniciar: Las claves BINANCE_API_KEY o BINANCE_API_SECRET no están definidas.
