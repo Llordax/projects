@@ -1,37 +1,64 @@
-"""
-Configuración principal del bot de trading para Binance Testnet.
+# =============================================================================
+# MÓDULO: settings.py
+# =============================================================================
+# 📌 DESCRIPCIÓN GENERAL
+# -----------------------------------------------------------------------------
+# Este módulo define la **configuración principal del bot de trading** para 
+# Binance Testnet. 
+#
+# Contiene los parámetros y constantes base que controlan el comportamiento
+# del sistema, como los periodos de indicadores técnicos, los niveles de
+# Take Profit y Stop Loss, así como los símbolos y marcos temporales usados.
+#
+# Estas variables actúan como **punto central de configuración**, facilitando
+# los ajustes de la estrategia sin modificar la lógica principal del código.
+#
+# -----------------------------------------------------------------------------
+# ⚙️ PARÁMETROS DEFINIDOS:
+#
+# Indicadores técnicos:
+#   - RSI_PERIOD: Ventana temporal usada para el RSI.
+#   - EMA_PERIOD: Ventana temporal usada para la EMA.
+#   - RSI_THRESHOLD: Nivel de referencia para la toma de decisiones RSI.
+#
+# Gestión de riesgo:
+#   - TP_PCTS: Porcentajes de ganancia para cada Take Profit.
+#   - SL_PCTS: Porcentajes de pérdida para cada Stop Loss.
+#   - TP_QTY: Porción del volumen total asignado a cada nivel TP.
+#   - SL_QTY: Porción del volumen total asignado a cada nivel SL.
+#
+# Parámetros de trading:
+#   - SYMBOL: Par de trading principal.
+#   - INTERVAL: Intervalo temporal de análisis.
+#   - TRADE_QUANTITY: Cantidad base a operar o porcentaje del balance.
+#
+# -----------------------------------------------------------------------------
+# 👤 Autor: Alejandro Llordén Rodríguez
+# 🗓️ Fecha: Octubre 2025
+# =============================================================================
 
-Este módulo define los parámetros base utilizados por el bot, incluyendo
-indicadores técnicos, porcentajes de take-profit (TP) y stop-loss (SL),
-símbolo de trading y configuración del timeframe.
 
-Constantes:
-    RSI_PERIOD (int): Número de periodos usados para calcular el RSI.
-    EMA_PERIOD (int): Número de periodos usados para calcular la EMA.
-    RSI_THRESHOLD (int): Nivel de referencia para evaluar señales RSI.
+# =============================================================================
+# 📈 Indicadores técnicos
+# =============================================================================
+RSI_PERIOD = 14            # Número de periodos usados para calcular el RSI
+EMA_PERIOD = 50            # Número de periodos usados para calcular la EMA
+RSI_THRESHOLD = 50         # Nivel de referencia RSI para entrada (neutralidad)
 
-    TP_PCTS (list[float]): Porcentajes de ganancia para cada nivel de take-profit.
-    SL_PCTS (list[float]): Porcentajes de pérdida permitidos para cada stop-loss.
-    TP_QTY (list[float]): Proporción del total de la posición asignada a cada nivel TP.
-    SL_QTY (list[float]): Proporción del total de la posición asignada a cada nivel SL.
 
-    SYMBOL (str): Par de trading usado por el bot (por defecto: "BTCEUR").
-    INTERVAL (str): Intervalo temporal de las velas (por ejemplo, "1h", "15m", etc.).
-    TRADE_QUANTITY (float): Cantidad base por operación o porcentaje de balance.
-"""
+# =============================================================================
+# 🎯 Gestión de riesgos y objetivos
+# =============================================================================
+TP_PCTS = [0.015, 0.03, 0.045]   # Porcentajes de ganancia (1.5%, 3%, 4.5%)
+SL_PCTS = [0.005, 0.01, 0.015]   # Porcentajes de pérdida (0.5%, 1%, 1.5%)
 
-# --- Indicadores técnicos ---
-RSI_PERIOD = 14
-EMA_PERIOD = 50
-RSI_THRESHOLD = 50
+TP_QTY = [0.33, 0.33, 0.34]      # Distribución de cantidad por nivel TP
+SL_QTY = [0.33, 0.33, 0.34]      # Distribución de cantidad por nivel SL
 
-# --- Gestión de riesgos y objetivos ---
-TP_PCTS = [0.015, 0.03, 0.045]
-SL_PCTS = [0.005, 0.01, 0.015]
-TP_QTY = [0.33, 0.33, 0.34]
-SL_QTY = [0.33, 0.33, 0.34]
 
-# --- Parámetros de trading ---
-SYMBOL = "BTCEUR"
-INTERVAL = "1h"
-TRADE_QUANTITY = 0.001  # o porcentaje de balance
+# =============================================================================
+# 💱 Parámetros de trading generales
+# =============================================================================
+SYMBOL = "BTCEUR"                # Par de trading usado por defecto
+INTERVAL = "1h"                  # Intervalo temporal de las velas
+TRADE_QUANTITY = 0.001           # Cantidad base o porcentaje del balance

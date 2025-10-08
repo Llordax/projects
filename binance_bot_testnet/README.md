@@ -1,19 +1,53 @@
-# Binance Bot Testnet 🤖
+# 🤖 Binance Bot Testnet — Versión Documentada 2025
 
-Un bot de trading automatizado para **Binance Testnet**, diseñado con una arquitectura modular y una estrategia técnica propietaria basada en indicadores de análisis de mercado.  
-Permite analizar datos, ejecutar operaciones simuladas, gestionar el riesgo y registrar toda la actividad en logs detallados.
+Bot de **trading automatizado** diseñado para operar en **Binance Testnet**, con una arquitectura modular, documentación técnica completa y gestión integral del riesgo.  
+El sistema analiza datos del mercado, genera señales mediante indicadores técnicos, ejecuta operaciones simuladas, registra resultados y mantiene logs detallados de toda su actividad.
 
 ---
 
 ## 🚀 Características
 
-- ✅ Integración con **Binance Testnet** (API oficial)  
-- 🧩 Arquitectura modular (core, data, services, utils)  
-- ⚙️ Configuración sencilla mediante `.env` y `settings.py`  
-- 🧠 Gestión de riesgo con **Take Profit (TP)** y **Stop Loss (SL)**  
-- 🪵 Registro completo de logs (errores y ejecución)  
-- 🔁 Sistema de reintento automático en caso de fallos de conexión  
-- 🔒 Estrategia privada no visible en el repositorio público  
+- ✅ Integración nativa con **Binance Testnet** (API oficial)
+- 🧩 Arquitectura modular y escalable (core, data, services, utils, config)
+- ⚙️ Configuración flexible mediante `.env` y `settings.py`
+- 🧠 Gestión de riesgo avanzada con **Take Profit (TP)** y **Stop Loss (SL)**
+- 🪵 Sistema completo de logging (ejecución y errores)
+- 🔁 Reintentos automáticos ante fallos de conexión o red
+- 📊 Registro histórico de operaciones en formato **Excel**
+- 🧮 Indicadores técnicos integrados: **EMA** y **RSI**
+- 🧱 Totalmente documentado para mantenimiento y extensión futura
+
+---
+
+## 🧭 Diagrama de funcionamiento del bot
+
+```mermaid
+flowchart TD
+
+A[Inicio del bot - main.py] --> B[Conexión a Binance (get_client)]
+B --> C[Obtención de datos OHLCV (get_ohlcv)]
+C --> D[Cálculo de indicadores técnicos (EMA, RSI)]
+D --> E[Evaluación de estrategia (check_entry)]
+E -->|Condición cumplida| F[Ejecución de trade (execute_trade)]
+E -->|Condición no cumplida| G[Esperar siguiente ciclo]
+
+F --> H[Colocación de órdenes TP/SL (place_tp_sl_orders)]
+H --> I[Registro de operación (log_trade)]
+I --> J[Monitoreo en tiempo real (monitor_orders)]
+J --> K[Actualización de logs y Excel]
+
+K --> L[run_with_retry() - Reintento continuo]
+G --> L
+```
+
+🧩 **Resumen del flujo:**
+1️⃣ El bot se conecta a Binance (Testnet o real según configuración).  
+2️⃣ Obtiene datos de precios y calcula EMA y RSI.  
+3️⃣ Evalúa las condiciones de entrada definidas por la estrategia.  
+4️⃣ Si se cumplen, ejecuta una orden de compra y coloca TP/SL.  
+5️⃣ Registra toda la información en Excel y logs.  
+6️⃣ Supervisa las órdenes activas en tiempo real.  
+7️⃣ En caso de error, `run_with_retry` mantiene la ejecución continua.
 
 ---
 
@@ -21,27 +55,34 @@ Permite analizar datos, ejecutar operaciones simuladas, gestionar el riesgo y re
 
 ```
 binance_bot_testnet/
-├── main.py                     # Punto de entrada principal
+├── main.py                     # Punto de entrada principal del bot
 ├── requirements.txt            # Dependencias del proyecto
-├── .env                        # Claves de API y configuración privada
+├── .env                        # Claves API privadas (no se versiona)
+│
 ├── config/
-│   └── settings.py             # Configuración global de parámetros
+│   └── settings.py             # Configuración global: parámetros RSI/EMA, TP/SL, símbolo, etc.
+│
 ├── core/
-│   ├── indicators.py           # Cálculo de indicadores técnicos
-│   ├── order_executor.py       # Ejecución de órdenes
-│   ├── risk_management.py      # Gestión de riesgo TP/SL
-│   ├── runner.py               # Bucle principal con reintentos
-│   └── strategy.py             # Estrategia de trading (no pública)
+│   ├── indicators.py           # Cálculo de indicadores EMA y RSI
+│   ├── order_executor.py       # Ejecución de órdenes, TP/SL, registro y monitoreo
+│   ├── order_monitor.py        # Supervisión y detección de ejecución de órdenes
+│   ├── risk_management.py      # Cálculo de niveles de Take Profit y Stop Loss
+│   ├── runner.py               # Bucle de ejecución continua con reintentos
+│   └── strategy.py             # Lógica de estrategia técnica (EMA + RSI)
+│
 ├── data/
-│   └── price_fetcher.py        # Obtención de precios y velas OHLCV
+│   └── price_fetcher.py        # Obtención de velas OHLCV desde Binance
+│
 ├── services/
-│   └── binance_client.py       # Conexión con la API de Binance
+│   └── binance_client.py       # Conexión y autenticación con Binance (Testnet/Producción)
+│
 ├── utils/
-│   ├── logger.py               # Registro de operaciones
-│   └── logger_setup.py         # Configuración del sistema de logging
+│   ├── logger.py               # Registro de operaciones en Excel (historial de trades)
+│   └── logger_setup.py         # Configuración centralizada del sistema de logging
+│
 └── logs/
-    ├── execution.log           # Registro de operaciones ejecutadas
-    └── errors.log              # Registro de errores
+    ├── execution.log           # Log de ejecución y eventos operativos
+    └── errors.log              # Log de errores y excepciones
 ```
 
 ---
@@ -49,22 +90,22 @@ binance_bot_testnet/
 ## ⚙️ Requisitos previos
 
 - Python **3.10+**  
-- Una cuenta de **Binance Testnet**  
-- Claves API de Testnet: [https://testnet.binance.vision/](https://testnet.binance.vision/)  
-- Se recomienda usar un **entorno virtual** de Python (`venv` o `conda`)
+- Cuenta en **Binance Testnet**  
+- Claves API obtenidas en [https://testnet.binance.vision/](https://testnet.binance.vision/)  
+- Recomendado: entorno virtual (`venv` o `conda`)
 
 ---
 
 ## 🔧 Instalación
 
-1. Clonar el repositorio:
+1. **Clonar el repositorio:**
 
 ```bash
 git clone https://github.com/tuusuario/binance_bot_testnet.git
 cd binance_bot_testnet
 ```
 
-2. Crear y activar un **entorno virtual** (aislado, no visual):
+2. **Crear y activar entorno virtual:**
 
 ```bash
 python -m venv venv
@@ -72,23 +113,23 @@ source venv/bin/activate      # macOS / Linux
 venv\Scripts\activate         # Windows
 ```
 
-3. Instalar dependencias:
+3. **Instalar dependencias:**
 
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Crear un archivo `.env` en la raíz (⚠️ no subirlo a GitHub):
+4. **Crear archivo `.env` en la raíz del proyecto:**
 
 ```bash
 BINANCE_API_KEY=tu_api_key
 BINANCE_API_SECRET=tu_api_secret
 ```
 
-5. Configurar los parámetros de trading en `config/settings.py`:
+5. **Configurar parámetros de trading en `config/settings.py`:**
 
 ```python
-SYMBOL = "BTCUSDT"
+SYMBOL = "BTCEUR"
 INTERVAL = "1h"
 EMA_PERIOD = 50
 RSI_PERIOD = 14
@@ -100,7 +141,7 @@ SL_PCTS = [0.005, 0.01, 0.015]
 
 ## ▶️ Ejecución
 
-Ejecutar el bot con:
+Ejecuta el bot con:
 
 ```bash
 python main.py
@@ -121,61 +162,72 @@ Ejecutando trade...
 
 ## 🧮 Estrategia de Trading
 
-El bot utiliza una **estrategia técnica privada** desarrollada para pruebas en Binance Testnet.  
-Se basa en indicadores de **tendencia y momentum**, junto con reglas de gestión de riesgo dinámico.  
+La estrategia técnica utilizada combina:
+- **EMA (Exponential Moving Average):** Detecta tendencias y cruces alcistas/bajistas.  
+- **RSI (Relative Strength Index):** Mide momentum y condiciones de sobrecompra/sobreventa.
 
-> ⚠️ Por motivos de privacidad y seguridad, la lógica exacta de la estrategia no se detalla públicamente.
+Condición básica de entrada:
+> RSI por debajo de 50 + EMA actual > EMA previa → Señal de compra
 
-Los niveles de **Take Profit (TP)** y **Stop Loss (SL)** se configuran mediante los porcentajes definidos en `config/settings.py`.
+> ⚠️ Por razones de privacidad, la estrategia puede incluir ajustes adicionales no visibles públicamente.
 
----
-
-## 🧱 Arquitectura técnica
-
-| Módulo | Descripción |
-|--------|--------------|
-| **core/** | Lógica de negocio: indicadores, ejecución y riesgo |
-| **services/** | Conexión y autenticación con la API de Binance |
-| **data/** | Descarga de datos OHLCV del mercado |
-| **utils/** | Logging, almacenamiento y registro de operaciones |
-| **config/** | Parámetros globales del bot |
-| **logs/** | Historial de ejecución y errores |
-
-El archivo `main.py` coordina todo el flujo: conexión → datos → análisis → estrategia → ejecución → logging.
+Los niveles de **TP/SL** se definen como porcentajes relativos al precio de entrada en `config/settings.py`.
 
 ---
 
 ## 🧾 Logs e historial de operaciones
 
-El bot guarda toda su actividad en la carpeta `logs/`:
+El bot registra toda la actividad en tiempo real en dos niveles:
 
+### 🪵 Archivos de logs
 ```
 logs/
-├── execution.log   # Operaciones ejecutadas y flujo general
-└── errors.log      # Errores o excepciones ocurridas
+├── execution.log   # Flujo general y órdenes ejecutadas
+└── errors.log      # Errores, excepciones y fallos críticos
 ```
 
-Además, cada operación se registra en un archivo Excel:
+### 📘 Historial de operaciones (Excel)
+Cada operación ejecutada se guarda en:
 ```
 excel/trades_history.xlsx
 ```
 
-Este historial incluye:
-- Ticker, cantidad y tipo de orden  
-- Precio de entrada y salida  
-- Niveles de TP/SL  
-- PnL (ganancia/pérdida)  
+Incluye:
+- Timestamp  
+- Order ID  
+- Ticker  
+- Tipo de orden (buy/sell/TP/SL)  
+- Cantidad y precios (open/SL/TP/close)  
+- Resultado de PnL  
+
+---
+
+## 🧱 Arquitectura técnica detallada
+
+| Módulo | Función | Descripción |
+|--------|----------|-------------|
+| **main.py** | Orquestación general | Coordina la ejecución completa del bot |
+| **core/indicators.py** | Cálculo técnico | Implementa EMA y RSI |
+| **core/strategy.py** | Señal de entrada | Evalúa condiciones para ejecutar trades |
+| **core/order_executor.py** | Ejecución operativa | Ejecuta compras, TP/SL y registra resultados |
+| **core/order_monitor.py** | Supervisión activa | Detecta ejecuciones de TP/SL y cancela órdenes restantes |
+| **core/risk_management.py** | Cálculo de riesgo | Define niveles de TP y SL según porcentajes |
+| **core/runner.py** | Robustez | Mantiene ejecución con reintentos automáticos |
+| **data/price_fetcher.py** | Datos de mercado | Descarga precios OHLCV desde Binance |
+| **services/binance_client.py** | Conexión API | Gestiona autenticación y entorno Testnet/Real |
+| **utils/logger_setup.py** | Logging global | Configura el sistema de registro (info y errores) |
+| **utils/logger.py** | Historial de trades | Guarda todas las operaciones en Excel |
 
 ---
 
 ## 🧠 Buenas prácticas
 
-- No reutilizar las claves de **producción** en testnet.  
-- Ajustar los parámetros en `settings.py` según tus objetivos.  
-- Revisar regularmente los logs (`logs/errors.log`).  
-- Mantener el archivo `.env` fuera del repositorio.  
-- Usar siempre un entorno virtual para aislar dependencias.  
-- Realizar pruebas extensivas antes de operar con dinero real.
+- No reutilices las claves de **producción** en Testnet.  
+- Ajusta los parámetros de `settings.py` antes de operar.  
+- Supervisa regularmente los archivos de log (`logs/errors.log`).  
+- Mantén el archivo `.env` fuera del control de versiones.  
+- Usa entornos virtuales para aislar dependencias.  
+- Prueba ampliamente el bot antes de usarlo en producción.
 
 ---
 
@@ -188,6 +240,7 @@ python-binance
 pandas
 numpy
 python-dotenv
+openpyxl
 ```
 
 ---

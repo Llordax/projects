@@ -1,3 +1,35 @@
+# =============================================================================
+# MÓDULO: main.py
+# =============================================================================
+# 📌 DESCRIPCIÓN GENERAL
+# -----------------------------------------------------------------------------
+# Este módulo es el **punto de entrada principal** del bot de trading.
+#
+# Coordina la ejecución completa del sistema:
+#   1️⃣ Inicializa la conexión con Binance.
+#   2️⃣ Obtiene los datos de precios (OHLCV) recientes.
+#   3️⃣ Calcula los indicadores técnicos (RSI y EMA).
+#   4️⃣ Evalúa las condiciones de entrada definidas en la estrategia.
+#   5️⃣ Ejecuta operaciones de compra si se cumplen las condiciones.
+#   6️⃣ Monitorea y gestiona automáticamente TP/SL y registros de operaciones.
+#
+# El módulo también implementa un sistema de **reintentos automáticos**
+# a través de `core.runner.run_with_retry`, garantizando la continuidad
+# del bot ante errores transitorios.
+#
+# -----------------------------------------------------------------------------
+# 🧩 DEPENDENCIAS CLAVE:
+#   - Binance API (servicios de conexión y datos)
+#   - Indicadores técnicos: EMA y RSI
+#   - Estrategia de entrada basada en EMA y RSI
+#   - Ejecutor de órdenes y gestor de riesgo
+#   - Sistema de logging y reintentos automáticos
+#
+# -----------------------------------------------------------------------------
+# 👤 Autor: Alejandro Llordén Rodríguez
+# 🗓️ Fecha: Octubre 2025
+# =============================================================================
+
 import time
 from services.binance_client import get_client
 from data.price_fetcher import get_ohlcv
@@ -19,40 +51,40 @@ from config.settings import (
 from utils.logger_setup import logger
 
 
+# =============================================================================
+# 🚀 FUNCIÓN PRINCIPAL: Flujo operativo del bot
+# =============================================================================
 def main():
-    """Función principal que ejecuta el flujo del bot de trading.
+    """
+    Ejecuta el flujo completo del bot de trading en Binance.
 
-    Esta función inicializa el cliente de Binance, obtiene los datos OHLCV
-    recientes, calcula los indicadores técnicos (RSI y EMA), evalúa las condiciones
-    de entrada mediante la estrategia definida y ejecuta la orden si se cumplen
-    los criterios.
+    Esta función coordina todas las etapas de la ejecución automatizada:
+        1️⃣ Inicializa el cliente Binance.
+        2️⃣ Descarga los datos OHLCV del símbolo configurado.
+        3️⃣ Calcula los indicadores técnicos (RSI y EMA).
+        4️⃣ Evalúa las condiciones de entrada según la estrategia definida.
+        5️⃣ Ejecuta una orden de trading si las condiciones se cumplen.
 
-    Flujo general:
-        1. Inicializa cliente de Binance.
-        2. Descarga precios históricos del símbolo configurado.
-        3. Calcula indicadores RSI y EMA.
-        4. Verifica condiciones de entrada.
-        5. Ejecuta trade si se cumplen condiciones.
-
-    Logs:
-        - Registra cada paso en `utils.logger_setup.logger`.
+    Cada paso se registra mediante el sistema de logging (`logger`).
 
     Raises:
-        Exception: Si ocurre un error inesperado durante la ejecución principal.
+        Exception: Si ocurre un error inesperado durante el flujo principal.
     """
     print("\n🚀 Bot iniciado")
     logger.info("Bot iniciado")
 
+    # 1️⃣ Inicializar cliente Binance
     client = get_client()
     print("🔑 Cliente Binance inicializado")
     logger.info("Cliente Binance inicializado")
 
+    # 2️⃣ Obtener precios OHLCV recientes
     df = get_ohlcv(client, SYMBOL, INTERVAL)
     print(f"📊 Últimos precios de {SYMBOL}:")
     print(df.tail(3))
     logger.info("Datos OHLCV obtenidos correctamente")
 
-    # Cálculo de indicadores técnicos
+    # 3️⃣ Calcular indicadores técnicos
     df["ema"] = calculate_ema(df, EMA_PERIOD)
     df["rsi"] = calculate_rsi(df, RSI_PERIOD)
 
@@ -64,34 +96,45 @@ def main():
     print(f"📈 EMA ahora: {ema_now:.2f}, EMA previa: {ema_prev:.2f}")
     logger.info(f"Indicadores RSI={rsi:.2f}, EMA actual={ema_now:.2f}, EMA previa={ema_prev:.2f}")
 
-    # Evaluación de condiciones de entrada
+    # 4️⃣ Evaluar condiciones de entrada de la estrategia
     if check_entry(rsi, ema_now, ema_prev):
         print("✅ Condición de entrada cumplida")
         logger.info("Condición de entrada cumplida. Ejecutando trade...")
-        execute_trade(client, df, SYMBOL, TP_PCTS, SL_PCTS, usdt_percentage=0.15)
+
+        # 5️⃣ Ejecutar trade completo (compra, TP/SL, registro y monitoreo)
+        execute_trade(client, df, SYMBOL, TP_PCTS, SL_PCTS, balance_pct=0.15)
     else:
         print("⛔ No se cumplen condiciones de entrada")
         logger.info("Condición de entrada no cumplida")
 
 
+# =============================================================================
+# 🧭 PUNTO DE ENTRADA PRINCIPAL DEL SCRIPT
+# =============================================================================
 if __name__ == "__main__":
-    """Punto de entrada del script.
+    """
+    Punto de entrada del programa.
 
-    Verifica la conexión con la cuenta de Binance antes de iniciar el bot.
-    En caso de éxito, muestra el balance disponible en la consola y
-    posteriormente ejecuta la función principal con un mecanismo de reintento.
+    - Verifica la conexión con la cuenta de Binance.
+    - Muestra el balance disponible de los activos.
+    - Inicia la ejecución continua del bot mediante `run_with_retry()`.
     """
     try:
+        # 🔍 Verificar conexión y mostrar balances disponibles
         client = get_client()
         info = client.get_account()
+
         print("✅ Cuenta conectada. Balance disponible:")
         for asset in info['balances']:
             if float(asset['free']) > 0:
                 print(f"{asset['asset']}: {asset['free']}")
+
         logger.info("Cuenta conectada y balance consultado correctamente")
 
-        # Ejecutar el bot con manejo de errores y reintentos
+        # ▶️ Ejecutar el bot con reintentos automáticos
         run_with_retry(main, interval=180)
+
     except Exception as e:
+        # ⚠️ Captura de errores críticos de inicialización
         print(f"❌ Error crítico al iniciar: {e}")
         logger.error(f"Error crítico al iniciar: {e}")
