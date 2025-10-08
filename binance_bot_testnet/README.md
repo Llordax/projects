@@ -24,19 +24,19 @@ El sistema analiza datos del mercado, genera señales mediante indicadores técn
 ```mermaid
 flowchart TD
 
-A[Inicio del bot - main.py] --> B[Conexión a Binance (get_client)]
-B --> C[Obtención de datos OHLCV (get_ohlcv)]
-C --> D[Cálculo de indicadores técnicos (EMA, RSI)]
-D --> E[Evaluación de estrategia (check_entry)]
-E -->|Condición cumplida| F[Ejecución de trade (execute_trade)]
-E -->|Condición no cumplida| G[Esperar siguiente ciclo]
+A[Inicio del bot - main.py] --> B[Conexion a Binance - get_client]
+B --> C[Obtencion de datos OHLCV - get_ohlcv]
+C --> D[Calculo de indicadores tecnicos - EMA y RSI]
+D --> E[Evaluacion de estrategia - check_entry]
+E -->|Condicion cumplida| F[Ejecucion de trade - execute_trade]
+E -->|Condicion no cumplida| G[Esperar siguiente ciclo]
 
-F --> H[Colocación de órdenes TP/SL (place_tp_sl_orders)]
-H --> I[Registro de operación (log_trade)]
-I --> J[Monitoreo en tiempo real (monitor_orders)]
-J --> K[Actualización de logs y Excel]
+F --> H[Colocacion de ordenes TP/SL - place_tp_sl_orders]
+H --> I[Registro de operacion - log_trade]
+I --> J[Monitoreo en tiempo real - monitor_orders]
+J --> K[Actualizacion de logs y Excel]
 
-K --> L[run_with_retry() - Reintento continuo]
+K --> L[run_with_retry - Reintento continuo]
 G --> L
 ```
 
