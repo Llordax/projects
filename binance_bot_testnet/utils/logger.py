@@ -41,7 +41,7 @@ def log_trade(order_id, ticker, order_type, qty, price_open, price_sl, price_tp,
 
     Args:
         order_id (str): Identificador único de la orden.
-        ticker (str): Símbolo de trading (por ejemplo, "BTCUSDT").
+        ticker (str): Símbolo de trading (por ejemplo, "BTCEUR").
         order_type (str): Tipo de orden ("buy" o "sell").
         qty (float): Cantidad de la operación.
         price_open (float): Precio de entrada.

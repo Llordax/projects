@@ -49,7 +49,7 @@ def adjust_quantity_to_lot_size(client: Client, symbol: str, quantity: float) ->
 
     Args:
         client (Client): Instancia autenticada del cliente de Binance.
-        symbol (str): Par de trading (por ejemplo, "BTCUSDT").
+        symbol (str): Par de trading (por ejemplo, "BTCEUR").
         quantity (float): Cantidad original calculada.
 
     Returns:
@@ -92,7 +92,7 @@ def place_market_buy(client: Client, symbol: str, quantity: float):
 
     Args:
         client (Client): Cliente autenticado de Binance.
-        symbol (str): Par de trading (por ejemplo, "BTCUSDT").
+        symbol (str): Par de trading (por ejemplo, "BTCEUR").
         quantity (float): Cantidad inicial a comprar (se ajustará automáticamente).
 
     Returns:
@@ -128,7 +128,7 @@ def place_tp_sl_orders(client: Client, symbol: str, quantity: float, entry_price
 
     Args:
         client (Client): Cliente Binance autenticado.
-        symbol (str): Par de trading (por ejemplo, "BTCUSDT").
+        symbol (str): Par de trading (por ejemplo, "BTCEUR").
         quantity (float): Cantidad total comprada.
         entry_price (float): Precio de entrada en la operación.
         tps (list[float]): Lista de precios objetivo (Take Profit).
@@ -183,9 +183,9 @@ def calculate_btc_quantity(client, symbol, usdt_percentage=0.15):
     Calcula la cantidad de BTC a comprar según el balance disponible en USDT.
 
     El cálculo se basa en:
-        - Balance actual en USDT.
+        - Balance actual en EUR.
         - Porcentaje configurado a invertir (por defecto 15%).
-        - Precio actual del símbolo (BTCUSDT).
+        - Precio actual del símbolo (BTCEUR).
 
     Args:
         client (Client): Cliente Binance autenticado.
@@ -196,17 +196,17 @@ def calculate_btc_quantity(client, symbol, usdt_percentage=0.15):
         float: Cantidad estimada de BTC a comprar (redondeada a 6 decimales).
     """
     try:
-        usdt_balance = float(client.get_asset_balance(asset='USDT')['free'])
+        usdt_balance = float(client.get_asset_balance(asset='EUR')['free'])
         usdt_to_use = usdt_balance * usdt_percentage
         btc_price = float(client.get_symbol_ticker(symbol=symbol)['price'])
         btc_quantity = round(usdt_to_use / btc_price, 6)
 
         print(f"💵 USDT disponible: {usdt_balance:.2f}")
-        print(f"📌 Usando {usdt_percentage * 100:.0f}%: {usdt_to_use:.2f} USDT")
+        print(f"📌 Usando {usdt_percentage * 100:.0f}%: {usdt_to_use:.2f} EUR")
         print(f"💱 Precio BTC: {btc_price:.2f}")
         print(f"🟢 BTC a comprar (previo a ajuste): {btc_quantity}")
 
-        logger.info(f"USDT disponible: {usdt_balance:.2f}, usando: {usdt_to_use:.2f} USDT, "
+        logger.info(f"EUR disponible: {usdt_balance:.2f}, usando: {usdt_to_use:.2f} EUR, "
                     f"precio BTC: {btc_price:.2f}, BTC a comprar: {btc_quantity}")
 
         return btc_quantity

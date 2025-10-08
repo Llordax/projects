@@ -15,7 +15,7 @@ def get_ohlcv(client, symbol, interval, limit=100):
 
     Args:
         client (Client): Instancia autenticada del cliente de Binance.
-        symbol (str): Par de trading (por ejemplo, "BTCUSDT").
+        symbol (str): Par de trading (por ejemplo, "BTCEUR").
         interval (str): Intervalo temporal de las velas (por ejemplo, "1h", "15m").
         limit (int, optional): Número máximo de velas a recuperar. Por defecto es 100.
 
@@ -27,7 +27,7 @@ def get_ohlcv(client, symbol, interval, limit=100):
         Exception: Si la API de Binance no devuelve datos válidos.
 
     Ejemplo:
-        >>> df = get_ohlcv(client, "BTCUSDT", "1h")
+        >>> df = get_ohlcv(client, "BTCEUR", "1h")
         >>> df.head()
              timestamp     open     high      low    close   volume
         0  1691235600000  29500.0  29600.0  29450.0  29580.0  152.43
