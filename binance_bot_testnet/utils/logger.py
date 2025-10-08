@@ -36,24 +36,13 @@ COLUMNS = [
 def log_trade(order_id, ticker, order_type, qty, price_open, price_sl, price_tp, price_closed, pnl):
     """Registra una operación ejecutada en un archivo Excel.
 
-    Si el archivo no existe, se crea automáticamente con las columnas adecuadas.
-    Cada nueva operación se agrega como una nueva fila al final del archivo.
-
-    Args:
-        order_id (str): Identificador único de la orden.
-        ticker (str): Símbolo de trading (por ejemplo, "BTCEUR").
-        order_type (str): Tipo de orden ("buy" o "sell").
-        qty (float): Cantidad de la operación.
-        price_open (float): Precio de entrada.
-        price_sl (float): Nivel de stop-loss asociado.
-        price_tp (float): Nivel de take-profit asociado.
-        price_closed (float): Precio al momento de cerrar la operación.
-        pnl (float): Ganancia o pérdida (Profit and Loss).
-
-    Raises:
-        Exception: Si ocurre un error al guardar el registro.
+    Ajusta el signo del PnL para mostrar pérdidas como negativas y
+    ganancias como valores positivos sin signo.
     """
     timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+    # ✅ Normalizar PnL
+    pnl_value = abs(pnl) if pnl >= 0 else -abs(pnl)
 
     new_trade = pd.DataFrame([{
         "timestamp": timestamp,
@@ -65,7 +54,7 @@ def log_trade(order_id, ticker, order_type, qty, price_open, price_sl, price_tp,
         "price_sl": price_sl,
         "price_tp": price_tp,
         "price_closed": price_closed,
-        "pnl": pnl
+        "pnl": pnl_value
     }])
 
     try:
@@ -79,9 +68,10 @@ def log_trade(order_id, ticker, order_type, qty, price_open, price_sl, price_tp,
 
         df_updated.to_excel(FILE_PATH, index=False)
         logger.info(f"✅ Operación {order_id} registrada correctamente en {FILE_PATH}")
-        print(f"🧾 Operación registrada: {ticker} ({order_type}) — PnL: {pnl:.2f}")
+        print(f"🧾 Operación registrada: {ticker} ({order_type}) — PnL: {pnl_value:.2f}")
 
     except Exception as e:
         logger.error(f"❌ Error al registrar operación {order_id}: {e}")
         print(f"❌ Error al registrar operación: {e}")
         raise
+

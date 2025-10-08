@@ -11,8 +11,9 @@ FUNCIONALIDADES PRINCIPALES:
     ✅ Ajustar la cantidad al tamaño de lote permitido por Binance (LOT_SIZE).
     ✅ Validar el valor mínimo de operación (MIN_NOTIONAL).
     ✅ Colocar órdenes de Take Profit (TP) y Stop Loss (SL) válidas para Spot.
-    ✅ Registrar cada operación ejecutada en logs y en un archivo Excel.
-    ✅ Manejar errores y excepciones para evitar interrupciones en la ejecución.
+    ✅ Registrar cada operación ejecutada (compra y cierre TP/SL) en logs y Excel.
+    ✅ Supervisar la ejecución de TP/SL en tiempo real.
+    ✅ Manejar errores y excepciones de forma segura.
 
 Autor: Alejandro Llordén Rodríguez
 Fecha: Octubre 2025
@@ -21,6 +22,7 @@ Fecha: Octubre 2025
 
 from binance.client import Client
 from core.risk_management import compute_tp_sl
+from core.order_monitor import monitor_orders  # 👁️ NUEVO: módulo que detecta ejecución TP/SL
 from utils.logger import log_trade
 from utils.logger_setup import logger
 import time
@@ -32,8 +34,9 @@ import math
 # =============================================================================
 def adjust_quantity_to_filters(client: Client, symbol: str, quantity: float, price: float) -> float:
     """
-    Ajusta la cantidad a comprar o vender de acuerdo con las restricciones de Binance:
-    LOT_SIZE (incremento válido) y MIN_NOTIONAL (valor mínimo en moneda cotizada).
+    Ajusta la cantidad de compra o venta de acuerdo con las restricciones de Binance:
+        - LOT_SIZE: Incrementos válidos de cantidad.
+        - MIN_NOTIONAL: Valor mínimo total de la operación.
 
     Args:
         client (Client): Cliente Binance autenticado.
@@ -42,7 +45,7 @@ def adjust_quantity_to_filters(client: Client, symbol: str, quantity: float, pri
         price (float): Precio actual del activo.
 
     Returns:
-        float: Cantidad ajustada que cumple con LOT_SIZE y MIN_NOTIONAL.
+        float: Cantidad ajustada que cumple con los filtros de Binance.
     """
     try:
         symbol_info = client.get_symbol_info(symbol)
@@ -55,15 +58,14 @@ def adjust_quantity_to_filters(client: Client, symbol: str, quantity: float, pri
             elif f["filterType"] == "MIN_NOTIONAL":
                 min_notional = float(f["minNotional"])
 
-        # Ajuste según LOT_SIZE
+        # Ajustar cantidad según LOT_SIZE
         if lot_size:
             quantity = math.floor(quantity / lot_size) * lot_size
         if min_qty and quantity < min_qty:
             quantity = min_qty
 
-        # Ajuste según MIN_NOTIONAL
+        # Ajustar según MIN_NOTIONAL (valor mínimo de operación)
         if min_notional and (quantity * price) < min_notional:
-            # Eleva la cantidad hasta cumplir el valor mínimo
             quantity = min_notional / price
 
         quantity = float(f"{quantity:.8f}")
@@ -80,7 +82,7 @@ def adjust_quantity_to_filters(client: Client, symbol: str, quantity: float, pri
 def place_market_buy(client: Client, symbol: str, quantity: float):
     """
     Ejecuta una orden de compra al mercado ajustando la cantidad automáticamente
-    a los filtros de Binance.
+    según los filtros LOT_SIZE y MIN_NOTIONAL.
 
     Args:
         client (Client): Cliente autenticado.
@@ -98,6 +100,7 @@ def place_market_buy(client: Client, symbol: str, quantity: float):
         logger.info(f"Ejecutando compra de {quantity} {symbol} al mercado...")
 
         order = client.order_market_buy(symbol=symbol, quantity=quantity)
+
         print("✅ Orden de compra ejecutada correctamente.")
         logger.info("Orden de compra ejecutada correctamente.")
         return order
@@ -116,6 +119,9 @@ def place_tp_sl_orders(client: Client, symbol: str, quantity: float, entry_price
     """
     Coloca órdenes de Take Profit y Stop Loss válidas en Binance Spot.
 
+    Se ajustan automáticamente las cantidades a LOT_SIZE y MIN_NOTIONAL
+    antes de colocarlas en Binance.
+
     Args:
         client (Client): Cliente autenticado.
         symbol (str): Par de trading.
@@ -131,10 +137,10 @@ def place_tp_sl_orders(client: Client, symbol: str, quantity: float, entry_price
         sl_price = round(sls[i], 2)
         stop_price = round(sls[i] * 0.999, 2)
 
-        # Ajustar cantidad según filtros
+        # Ajustar cantidad según filtros Binance
         qty = adjust_quantity_to_filters(client, symbol, qty, tp_price)
 
-        # TAKE PROFIT
+        # 🟩 TAKE PROFIT
         try:
             client.order_limit_sell(
                 symbol=symbol,
@@ -149,7 +155,7 @@ def place_tp_sl_orders(client: Client, symbol: str, quantity: float, entry_price
             logger.error(f"Error en TP{i+1}: {e}")
         time.sleep(0.5)
 
-        # STOP LOSS
+        # 🟥 STOP LOSS
         try:
             qty = adjust_quantity_to_filters(client, symbol, qty, sl_price)
             client.create_order(
@@ -174,16 +180,16 @@ def place_tp_sl_orders(client: Client, symbol: str, quantity: float, entry_price
 # =============================================================================
 def calculate_trade_quantity(client, symbol, balance_asset='EUR', balance_pct=0.15):
     """
-    Calcula la cantidad a comprar en función del balance disponible.
+    Calcula la cantidad de activo a comprar en función del balance disponible.
 
     Args:
         client (Client): Cliente autenticado.
         symbol (str): Par de trading.
-        balance_asset (str): Moneda base (EUR, USDT, USDC, etc.).
-        balance_pct (float): Porcentaje del balance a usar.
+        balance_asset (str): Moneda base (EUR, USDT, etc.).
+        balance_pct (float): Porcentaje del balance a invertir.
 
     Returns:
-        float: Cantidad a comprar.
+        float: Cantidad ajustada a 8 decimales.
     """
     try:
         balance = float(client.get_asset_balance(asset=balance_asset)['free'])
@@ -195,7 +201,9 @@ def calculate_trade_quantity(client, symbol, balance_asset='EUR', balance_pct=0.
         print(f"📌 Usando {balance_pct * 100:.0f}%: {to_use:.2f} {balance_asset}")
         print(f"💱 Precio {symbol}: {price:.2f}")
         print(f"🟢 Cantidad calculada: {quantity}")
-        logger.info(f"{balance_asset} disponible: {balance:.2f}, usando: {to_use:.2f}, precio {symbol}: {price:.2f}, cantidad: {quantity}")
+
+        logger.info(f"{balance_asset} disponible: {balance:.2f}, usando: {to_use:.2f}, "
+                    f"precio {symbol}: {price:.2f}, cantidad: {quantity}")
 
         return quantity
 
@@ -211,31 +219,36 @@ def calculate_trade_quantity(client, symbol, balance_asset='EUR', balance_pct=0.
 def execute_trade(client, df, symbol, tp_pcts, sl_pcts, balance_pct):
     """
     Ejecuta el flujo completo de una operación:
-    1️⃣ Calcula cantidad.
-    2️⃣ Compra al mercado.
-    3️⃣ Coloca TP/SL.
-    4️⃣ Registra la operación.
+        1️⃣ Calcula la cantidad según balance.
+        2️⃣ Ejecuta la compra al mercado.
+        3️⃣ Coloca los niveles de TP y SL.
+        4️⃣ Registra la operación inicial en Excel.
+        5️⃣ Monitorea la ejecución de TP/SL en tiempo real.
     """
+    # 1️⃣ Calcular la cantidad a comprar
     buy_qty = calculate_trade_quantity(client, symbol, balance_asset='EUR', balance_pct=balance_pct)
     if buy_qty <= 0:
         print("❌ Cantidad inválida. Se omite la operación.")
         logger.warning("Cantidad inválida. Se omite la operación.")
         return
 
+    # 2️⃣ Ejecutar orden de compra
     order = place_market_buy(client, symbol, buy_qty)
     if not order:
         print("❌ No se pudo ejecutar la compra.")
         logger.error("No se pudo ejecutar la compra.")
         return
 
+    # 3️⃣ Precio real de entrada
     entry_price = float(order['fills'][0]['price'])
     print(f"📌 Precio real de entrada: {entry_price}")
     logger.info(f"Precio real de entrada: {entry_price}")
 
+    # 4️⃣ Calcular Take Profit y Stop Loss
     tps, sls = compute_tp_sl(entry_price, tp_pcts, sl_pcts)
     place_tp_sl_orders(client, symbol, buy_qty, entry_price, tps, sls, [0.33, 0.33, 0.34])
 
-    # Registro en Excel
+    # 5️⃣ Registrar operación de compra en Excel
     try:
         log_trade(
             order_id=order["orderId"],
@@ -253,3 +266,11 @@ def execute_trade(client, df, symbol, tp_pcts, sl_pcts, balance_pct):
     except Exception as e:
         print(f"⚠️ Error al registrar operación: {e}")
         logger.error(f"Error al registrar operación: {e}")
+
+    # 6️⃣ 👁️ Iniciar monitoreo de TP/SL
+    try:
+        print("👁️ Iniciando monitoreo de TP/SL...")
+        monitor_orders(client, symbol, entry_price, buy_qty)
+    except Exception as e:
+        print(f"⚠️ Error en monitorización: {e}")
+        logger.error(f"Error en monitorización: {e}")

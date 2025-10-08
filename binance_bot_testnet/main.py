@@ -91,7 +91,7 @@ if __name__ == "__main__":
         logger.info("Cuenta conectada y balance consultado correctamente")
 
         # Ejecutar el bot con manejo de errores y reintentos
-        run_with_retry(main, interval=900)
+        run_with_retry(main, interval=180)
     except Exception as e:
         print(f"❌ Error crítico al iniciar: {e}")
         logger.error(f"Error crítico al iniciar: {e}")
