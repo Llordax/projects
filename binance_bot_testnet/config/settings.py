@@ -22,7 +22,7 @@
 # =============================================================================
 RSI_PERIOD = 14            # Número de periodos usados para calcular el RSI
 EMA_PERIOD = 50            # Número de periodos usados para calcular la EMA
-RSI_THRESHOLD = 40         # Nivel de referencia RSI para entrada
+RSI_THRESHOLD = 50         # Nivel de referencia RSI para entrada
 
 
 # =============================================================================

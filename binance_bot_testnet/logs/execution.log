@@ -1,0 +1,39 @@
+2025-10-11 04:20:22,888 - INFO - Logger inicializado correctamente. Archivos de log creados en carpeta /logs
+2025-10-11 04:20:24,247 - INFO - 🔐 Cliente Binance inicializado correctamente.
+2025-10-11 04:20:24,249 - INFO - Conectado a Binance Spot TESTNET.
+2025-10-11 04:20:25,383 - INFO - 🔐 Cliente Binance inicializado correctamente.
+2025-10-11 04:20:25,383 - INFO - Conectado a Binance Spot TESTNET.
+2025-10-11 04:20:25,928 - INFO - Datos OHLCV obtenidos correctamente para BTCEUR (15m)
+2025-10-11 04:20:30,947 - INFO - Esperando siguiente ejecución...
+2025-10-11 04:25:31,524 - INFO - 🔐 Cliente Binance inicializado correctamente.
+2025-10-11 04:25:31,526 - INFO - Conectado a Binance Spot TESTNET.
+2025-10-11 04:25:32,061 - INFO - Datos OHLCV obtenidos correctamente para BTCEUR (15m)
+2025-10-11 04:25:37,080 - INFO - Esperando siguiente ejecución...
+2025-10-11 04:30:38,927 - INFO - 🔐 Cliente Binance inicializado correctamente.
+2025-10-11 04:30:38,933 - INFO - Conectado a Binance Spot TESTNET.
+2025-10-11 04:30:40,805 - INFO - Datos OHLCV obtenidos correctamente para BTCEUR (15m)
+2025-10-11 04:30:45,846 - INFO - Esperando siguiente ejecución...
+2025-10-11 04:35:47,450 - INFO - 🔐 Cliente Binance inicializado correctamente.
+2025-10-11 04:35:47,452 - INFO - Conectado a Binance Spot TESTNET.
+2025-10-11 04:35:48,822 - INFO - Datos OHLCV obtenidos correctamente para BTCEUR (15m)
+2025-10-11 04:35:53,862 - INFO - Esperando siguiente ejecución...
+2025-10-11 04:40:54,968 - INFO - 🔐 Cliente Binance inicializado correctamente.
+2025-10-11 04:40:54,969 - INFO - Conectado a Binance Spot TESTNET.
+2025-10-11 04:40:56,348 - INFO - Datos OHLCV obtenidos correctamente para BTCEUR (15m)
+2025-10-11 04:41:01,371 - INFO - Esperando siguiente ejecución...
+2025-10-11 04:46:02,795 - INFO - 🔐 Cliente Binance inicializado correctamente.
+2025-10-11 04:46:02,797 - INFO - Conectado a Binance Spot TESTNET.
+2025-10-11 04:46:04,193 - INFO - Datos OHLCV obtenidos correctamente para BTCEUR (15m)
+2025-10-11 04:46:09,215 - INFO - Esperando siguiente ejecución...
+2025-10-11 04:51:10,444 - INFO - 🔐 Cliente Binance inicializado correctamente.
+2025-10-11 04:51:10,445 - INFO - Conectado a Binance Spot TESTNET.
+2025-10-11 04:51:11,459 - INFO - Datos OHLCV obtenidos correctamente para BTCEUR (15m)
+2025-10-11 04:51:16,481 - INFO - Esperando siguiente ejecución...
+2025-10-11 04:56:17,961 - INFO - 🔐 Cliente Binance inicializado correctamente.
+2025-10-11 04:56:17,963 - INFO - Conectado a Binance Spot TESTNET.
+2025-10-11 04:56:19,239 - INFO - Datos OHLCV obtenidos correctamente para BTCEUR (15m)
+2025-10-11 04:56:24,259 - INFO - Esperando siguiente ejecución...
+2025-10-11 05:01:25,682 - INFO - 🔐 Cliente Binance inicializado correctamente.
+2025-10-11 05:01:25,682 - INFO - Conectado a Binance Spot TESTNET.
+2025-10-11 05:01:26,907 - INFO - Datos OHLCV obtenidos correctamente para BTCEUR (15m)
+2025-10-11 05:01:31,921 - INFO - Esperando siguiente ejecución...

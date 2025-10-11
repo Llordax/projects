@@ -16,7 +16,7 @@ from core.indicators import calculate_ema, calculate_rsi
 
 def check_entry(rsi: float, ema_now: float, ema_prev: float) -> bool:
     """Verifica si se cumple la condición de entrada."""
-    return rsi < 40 and ema_now > ema_prev
+    return rsi < 50 and ema_now > ema_prev
 
 def analyze_market(df, ema_period: int, rsi_period: int):
     """Analiza el mercado con EMA y RSI y retorna si hay señal de entrada."""
