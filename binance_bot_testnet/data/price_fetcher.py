@@ -93,6 +93,9 @@ def get_ohlcv(client: Client, symbol: str, interval: str, limit: int = 100) -> p
         # Filtrar solo las columnas relevantes y convertir a tipo float
         df = df[["timestamp", "open", "high", "low", "close", "volume"]].astype(float)
 
+        df = df[:-1]  # 🔒 Elimina la última vela (aún en formación)
+
+
         # Registrar éxito de obtención de datos
         logger.info(f"Datos OHLCV obtenidos correctamente para {symbol} ({interval})")
 

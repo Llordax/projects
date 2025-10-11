@@ -2,28 +2,21 @@
 # MÓDULO: order_executor.py
 # =============================================================================
 # 📌 DESCRIPCIÓN GENERAL
-# ----------------------------------------------------------------------------- 
-# Este módulo gestiona **toda la ejecución operativa** del bot de trading en Binance.
-# 
-# Funcionalidades principales:
-#   ✅ Ejecuta órdenes de compra al mercado.
-#   ✅ Calcula automáticamente la cantidad a invertir en función del balance disponible.
-#   ✅ Ajusta la cantidad de compra según los filtros de Binance (LOT_SIZE, MIN_NOTIONAL).
-#   ✅ Coloca órdenes de Take Profit (TP) y Stop Loss (SL) válidas para Spot.
-#   ✅ Registra las operaciones ejecutadas en logs y Excel.
-#   ✅ Supervisa en tiempo real la ejecución de TP/SL.
-#   ✅ Gestiona de forma segura excepciones y errores.
-#
-# Este módulo actúa como **capa intermedia** entre la estrategia del bot y la API de Binance,
-# asegurando que cada operación cumpla los parámetros de riesgo, formato y restricciones del exchange.
-#
 # -----------------------------------------------------------------------------
-# 🧩 DEPENDENCIAS:
-#   - binance.client.Client
-#   - core.risk_management.compute_tp_sl
-#   - core.order_monitor.monitor_orders
-#   - utils.logger.log_trade
-#   - utils.logger_setup.logger
+# Este módulo controla todo el flujo operativo de ejecución del bot:
+#   1. Cálculo de cantidad de compra (según balance y porcentaje configurado)
+#   2. Ejecución de la orden de compra al mercado.
+#   3. Colocación de órdenes de Take Profit (TP) y Stop Loss (SL).
+#   4. Registro del trade y monitoreo posterior.
+#
+# 🚀 Versión SCALPER SIMPLE:
+#   - 1 Take Profit (+X%)
+#   - 1 Stop Loss (-Y%)
+#
+# ⚙️ NUEVAS MEJORAS:
+#   ✅ Cancelación automática de órdenes abiertas previas (para evitar error
+#      `MAX_NUM_ALGO_ORDERS` cuando se alcanzan los límites de órdenes activas).
+#   ✅ Documentación completa y trazabilidad con logs.
 # -----------------------------------------------------------------------------
 # 👤 Autor: Alejandro Llordén Rodríguez
 # 🗓️ Fecha: Octubre 2025
@@ -31,277 +24,259 @@
 
 from binance.client import Client
 from core.risk_management import compute_tp_sl
-from core.order_monitor import monitor_orders  # 👁️ NUEVO: módulo que detecta ejecución TP/SL
+from core.order_monitor import monitor_orders
 from utils.logger import log_trade
 from utils.logger_setup import logger
-import time
 import math
+import time
 
 
 # =============================================================================
-# 🔧 FUNCIÓN AUXILIAR: Ajuste de cantidad según LOT_SIZE y MIN_NOTIONAL
+# 🔢 FUNCIÓN: Ajuste de cantidad según filtros de Binance
 # =============================================================================
 def adjust_quantity_to_filters(client: Client, symbol: str, quantity: float, price: float) -> float:
     """
-    Ajusta la cantidad de una orden para cumplir las restricciones del mercado en Binance.
-
-    La función verifica los filtros de símbolo del par (symbol) y modifica la cantidad
-    según los siguientes criterios:
-        - LOT_SIZE: incrementos válidos de cantidad.
-        - MIN_NOTIONAL: valor mínimo total de operación.
+    Ajusta la cantidad de compra o venta para cumplir con las restricciones
+    de Binance (LOT_SIZE, MIN_NOTIONAL, etc.).
 
     Args:
-        client (Client): Instancia autenticada del cliente de Binance.
-        symbol (str): Par de trading (por ejemplo, "BTCEUR").
-        quantity (float): Cantidad original propuesta para la operación.
+        client (Client): Cliente de Binance autenticado.
+        symbol (str): Par de trading, ej. "BTCEUR".
+        quantity (float): Cantidad bruta calculada.
         price (float): Precio actual del activo.
 
     Returns:
-        float: Cantidad ajustada que cumple con los filtros de Binance.
+        float: Cantidad ajustada y válida para la API.
     """
     try:
-        symbol_info = client.get_symbol_info(symbol)
-        lot_size, min_qty, min_notional = None, None, None
+        info = client.get_symbol_info(symbol)
+        lot, min_qty, min_notional = None, None, None
 
-        # Se recorren los filtros para extraer restricciones relevantes del mercado
-        for f in symbol_info["filters"]:
+        # Recorre los filtros de Binance para obtener límites por símbolo
+        for f in info["filters"]:
             if f["filterType"] == "LOT_SIZE":
-                lot_size = float(f["stepSize"])
+                lot = float(f["stepSize"])
                 min_qty = float(f["minQty"])
             elif f["filterType"] == "MIN_NOTIONAL":
                 min_notional = float(f["minNotional"])
 
-        # Ajuste según tamaño de lote (LOT_SIZE)
-        if lot_size:
-            quantity = math.floor(quantity / lot_size) * lot_size
-
-        # Evitar cantidades menores al mínimo permitido
+        # Ajustes de tamaño de lote y valor mínimo
+        if lot:
+            quantity = math.floor(quantity / lot) * lot
         if min_qty and quantity < min_qty:
             quantity = min_qty
-
-        # Asegurar que el valor total supere el mínimo notional
         if min_notional and (quantity * price) < min_notional:
             quantity = min_notional / price
 
-        # Redondear a 8 decimales para evitar errores de precisión
-        quantity = float(f"{quantity:.8f}")
-        return quantity
+        return round(quantity, 6)
 
     except Exception as e:
-        logger.error(f"Error al ajustar cantidad según filtros Binance: {e}")
+        logger.error(f"Error al ajustar cantidad: {e}")
         return quantity
 
 
 # =============================================================================
-# 🟢 FUNCIÓN: Orden de compra al mercado
+# 🟢 FUNCIÓN: Ejecutar orden de compra al mercado
 # =============================================================================
 def place_market_buy(client: Client, symbol: str, quantity: float):
     """
-    Ejecuta una orden de compra al mercado en Binance Spot.
-
-    La función ajusta la cantidad automáticamente según los filtros de Binance
-    antes de enviar la orden de compra.
+    Ejecuta una orden de compra al mercado.
 
     Args:
-        client (Client): Cliente Binance autenticado.
+        client (Client): Cliente de Binance autenticado.
         symbol (str): Par de trading (por ejemplo, "BTCEUR").
-        quantity (float): Cantidad inicial a comprar.
+        quantity (float): Cantidad de compra ajustada.
 
     Returns:
-        dict | None: Objeto de respuesta de la orden si es exitosa, o None si ocurre un error.
+        dict | None: Datos de la orden ejecutada, o None si falla.
     """
     try:
-        # Obtener precio de mercado actual y ajustar cantidad
         price = float(client.get_symbol_ticker(symbol=symbol)['price'])
         quantity = adjust_quantity_to_filters(client, symbol, quantity, price)
 
-        print(f"🟢 Ejecutando compra de {quantity} {symbol} al mercado...")
-        logger.info(f"Ejecutando compra de {quantity} {symbol} al mercado...")
+        # Formatear la cantidad según requisitos de Binance
+        safe_qty = format(quantity, '.6f').rstrip('0').rstrip('.')
 
-        # Envío de orden de compra tipo Market
-        order = client.order_market_buy(symbol=symbol, quantity=quantity)
+        print(f"🟢 Comprando {safe_qty} {symbol}...")
+        order = client.order_market_buy(symbol=symbol, quantity=safe_qty)
+        print("✅ Compra ejecutada correctamente.")
 
-        print("✅ Orden de compra ejecutada correctamente.")
-        logger.info("Orden de compra ejecutada correctamente.")
         return order
 
     except Exception as e:
-        print(f"❌ Error al ejecutar orden de compra: {e}")
-        logger.error(f"Error al ejecutar orden de compra: {e}")
+        print(f"❌ Error al comprar: {e}")
+        logger.error(f"Error al comprar: {e}")
         return None
 
 
 # =============================================================================
-# 🎯 FUNCIÓN: Colocar órdenes TP/SL con validación de filtros
+# 🎯 FUNCIÓN: Cancelar órdenes abiertas (prevención de MAX_NUM_ALGO_ORDERS)
 # =============================================================================
-def place_tp_sl_orders(client: Client, symbol: str, quantity: float, entry_price: float,
-                       tps: list, sls: list, qty_splits: list):
+def cancel_existing_orders(client: Client, symbol: str):
     """
-    Coloca las órdenes de Take Profit (TP) y Stop Loss (SL) correspondientes a una operación abierta.
-
-    Cada nivel de TP y SL se ajusta automáticamente según los filtros de Binance
-    para cumplir los límites mínimos de cantidad y valor notional.
+    Cancela todas las órdenes abiertas previas del símbolo indicado.
+    Evita superar el límite de órdenes activas tipo STOP o LIMIT.
 
     Args:
-        client (Client): Cliente Binance autenticado.
-        symbol (str): Par de trading.
-        quantity (float): Cantidad total comprada.
-        entry_price (float): Precio de entrada de la operación.
-        tps (list[float]): Lista de niveles de Take Profit.
-        sls (list[float]): Lista de niveles de Stop Loss.
-        qty_splits (list[float]): Proporción de cantidad por cada nivel de salida.
-    """
-    for i in range(3):
-        # Calcular cantidad y precios para cada nivel
-        qty = round(quantity * qty_splits[i], 8)
-        tp_price = round(tps[i], 2)
-        sl_price = round(sls[i], 2)
-        stop_price = round(sls[i] * 0.999, 2)  # Margen para activación del SL
-
-        # Ajustar cantidad según filtros Binance
-        qty = adjust_quantity_to_filters(client, symbol, qty, tp_price)
-
-        # 🟩 Colocación de Take Profit
-        try:
-            client.order_limit_sell(
-                symbol=symbol,
-                quantity=qty,
-                price=str(tp_price),
-                timeInForce=Client.TIME_IN_FORCE_GTC
-            )
-            print(f"🎯 TP{i+1} colocado en {tp_price} con {qty} {symbol}")
-            logger.info(f"TP{i+1} colocado en {tp_price} con {qty} {symbol}")
-        except Exception as e:
-            print(f"❌ Error en TP{i+1}: {e}")
-            logger.error(f"Error en TP{i+1}: {e}")
-        time.sleep(0.5)
-
-        # 🟥 Colocación de Stop Loss (orden de venta condicional)
-        try:
-            qty = adjust_quantity_to_filters(client, symbol, qty, sl_price)
-            client.create_order(
-                symbol=symbol,
-                side='SELL',
-                type='STOP_LOSS_LIMIT',
-                quantity=qty,
-                price=str(sl_price),
-                stopPrice=str(stop_price),
-                timeInForce='GTC'
-            )
-            print(f"🛑 SL{i+1} colocado en {sl_price} (stop: {stop_price}) con {qty} {symbol}")
-            logger.info(f"SL{i+1} colocado en {sl_price} (stop: {stop_price}) con {qty} {symbol}")
-        except Exception as e:
-            print(f"❌ Error en SL{i+1}: {e}")
-            logger.error(f"Error en SL{i+1}: {e}")
-        time.sleep(0.5)
-
-
-# =============================================================================
-# 💰 FUNCIÓN: Calcular cantidad a comprar
-# =============================================================================
-def calculate_trade_quantity(client, symbol, balance_asset='EUR', balance_pct=0.15):
-    """
-    Calcula la cantidad de activo a comprar según el balance disponible y un porcentaje definido.
-
-    Args:
-        client (Client): Cliente Binance autenticado.
-        symbol (str): Par de trading (por ejemplo, "BTCEUR").
-        balance_asset (str): Activo base en el que se posee el balance (por defecto 'EUR').
-        balance_pct (float): Porcentaje del balance a invertir (ej. 0.15 = 15%).
-
-    Returns:
-        float: Cantidad del activo a comprar, ajustada a 8 decimales.
+        client (Client): Cliente de Binance autenticado.
+        symbol (str): Par de trading, ej. "BTCEUR".
     """
     try:
-        # Obtener balance disponible y calcular inversión
-        balance = float(client.get_asset_balance(asset=balance_asset)['free'])
-        to_use = balance * balance_pct
-        price = float(client.get_symbol_ticker(symbol=symbol)['price'])
-        quantity = round(to_use / price, 8)
+        open_orders = client.get_open_orders(symbol=symbol)
+        if not open_orders:
+            return
 
-        # Mostrar información útil al usuario
-        print(f"💵 {balance_asset} disponible: {balance:.2f}")
-        print(f"📌 Usando {balance_pct * 100:.0f}%: {to_use:.2f} {balance_asset}")
-        print(f"💱 Precio {symbol}: {price:.2f}")
-        print(f"🟢 Cantidad calculada: {quantity}")
-
-        logger.info(f"{balance_asset} disponible: {balance:.2f}, usando: {to_use:.2f}, "
-                    f"precio {symbol}: {price:.2f}, cantidad: {quantity}")
-
-        return quantity
+        for order in open_orders:
+            try:
+                client.cancel_order(symbol=symbol, orderId=order['orderId'])
+                logger.info(f"🧹 Orden cancelada antes de nueva entrada: {order['orderId']}")
+            except Exception as e:
+                logger.warning(f"⚠️ No se pudo cancelar orden previa {order.get('orderId')}: {e}")
 
     except Exception as e:
-        print(f"❌ Error al calcular cantidad: {e}")
+        logger.error(f"Error al obtener órdenes abiertas: {e}")
+
+
+# =============================================================================
+# 🎯 FUNCIÓN: Colocar órdenes de Take Profit y Stop Loss
+# =============================================================================
+def place_tp_sl_orders(client: Client, symbol: str, quantity: float,
+                       entry_price: float, tps: list, sls: list, qty_splits: list):
+    """
+    Coloca una orden de Take Profit (TP) y una de Stop Loss (SL).
+
+    Args:
+        client (Client): Cliente de Binance.
+        symbol (str): Par de trading.
+        quantity (float): Cantidad total a vender.
+        entry_price (float): Precio de entrada.
+        tps (list): Lista de precios de TP calculados.
+        sls (list): Lista de precios de SL calculados.
+        qty_splits (list): Fracciones de cantidad a aplicar por TP/SL.
+
+    Notas:
+        - Antes de crear las nuevas órdenes, se cancelan las previas.
+        - En Testnet, las órdenes TP/SL no se ejecutan automáticamente;
+          el monitoreo simula la ejecución.
+    """
+    try:
+        # 🧹 Cancelar órdenes previas del mismo símbolo
+        cancel_existing_orders(client, symbol)
+
+        # Calcular precios TP y SL redondeados
+        tp = round(tps[0], 2)
+        sl = round(sls[0], 2)
+        stop_price = round(sls[0] * 0.999, 2)
+
+        # Ajustar cantidad a restricciones de Binance
+        qty = adjust_quantity_to_filters(client, symbol, quantity, tp)
+        safe_qty = format(qty, '.6f').rstrip('0').rstrip('.')
+
+        # Crear orden de venta Take Profit
+        client.order_limit_sell(
+            symbol=symbol,
+            quantity=safe_qty,
+            price=f"{tp:.2f}",
+            timeInForce=Client.TIME_IN_FORCE_GTC
+        )
+
+        # Crear orden de venta Stop Loss
+        client.create_order(
+            symbol=symbol,
+            side='SELL',
+            type='STOP_LOSS_LIMIT',
+            quantity=safe_qty,
+            price=f"{sl:.2f}",
+            stopPrice=f"{stop_price:.2f}",
+            timeInForce='GTC'
+        )
+
+        print(f"🎯 TP en {tp:.2f} | 🛑 SL en {sl:.2f}")
+        logger.info(f"TP/SL colocados → TP={tp:.2f} | SL={sl:.2f}")
+
+    except Exception as e:
+        print(f"❌ Error al colocar TP/SL: {e}")
+        logger.error(f"Error al colocar TP/SL: {e}")
+
+
+# =============================================================================
+# 💶 FUNCIÓN: Calcular cantidad de compra según balance disponible
+# =============================================================================
+def calculate_trade_quantity(client: Client, symbol: str,
+                             balance_asset: str = 'EUR', balance_pct: float = 0.15) -> float:
+    """
+    Calcula la cantidad a comprar en función del balance disponible.
+
+    Args:
+        client (Client): Cliente de Binance autenticado.
+        symbol (str): Par de trading (ejemplo "BTCEUR").
+        balance_asset (str): Moneda base del balance (por defecto, EUR).
+        balance_pct (float): Porcentaje del balance a invertir.
+
+    Returns:
+        float: Cantidad calculada (ajustada posteriormente a filtros).
+    """
+    try:
+        bal = float(client.get_asset_balance(asset=balance_asset)['free'])
+        use = bal * balance_pct
+        price = float(client.get_symbol_ticker(symbol=symbol)['price'])
+        qty = round(use / price, 8)
+
+        print(f"💶 Balance {balance_asset}: {bal:.2f} | Invirtiendo {use:.2f}")
+        logger.info(f"Cantidad calculada: {qty} ({balance_pct*100:.1f}% del balance)")
+
+        return qty
+
+    except Exception as e:
         logger.error(f"Error al calcular cantidad: {e}")
         return 0.0
 
 
 # =============================================================================
-# ⚙️ FUNCIÓN PRINCIPAL: Ejecución completa de una operación
+# 🚀 FUNCIÓN PRINCIPAL: Ejecución completa del trade
 # =============================================================================
-def execute_trade(client, df, symbol, tp_pcts, sl_pcts, balance_pct):
+def execute_trade(client: Client, df, symbol: str, tp_pcts: list, sl_pcts: list, balance_pct: float):
     """
-    Ejecuta el flujo operativo completo de un trade:
-        1️⃣ Calcula la cantidad de compra en función del balance.
-        2️⃣ Ejecuta la orden de compra al mercado.
-        3️⃣ Calcula y coloca los niveles de Take Profit y Stop Loss.
-        4️⃣ Registra la operación en Excel y logs.
-        5️⃣ Inicia la monitorización activa de órdenes TP/SL.
+    Flujo completo de ejecución de una operación (compra + TP/SL + monitoreo).
+
+    Pasos:
+        1. Calcular la cantidad a invertir según balance.
+        2. Ejecutar la orden de compra al mercado.
+        3. Calcular niveles de Take Profit y Stop Loss.
+        4. Colocar las órdenes de salida (TP/SL).
+        5. Registrar la operación en el Excel y los logs.
+        6. Iniciar monitoreo hasta ejecución simulada (en Testnet).
 
     Args:
-        client (Client): Cliente Binance autenticado.
-        df (DataFrame): Dataset o estructura con información de entrada (no usado directamente).
+        client (Client): Cliente de Binance autenticado.
+        df (pd.DataFrame): DataFrame con datos de precios (no usado directamente).
         symbol (str): Par de trading.
-        tp_pcts (list[float]): Porcentajes de Take Profit.
-        sl_pcts (list[float]): Porcentajes de Stop Loss.
+        tp_pcts (list): Lista de porcentajes de ganancia.
+        sl_pcts (list): Lista de porcentajes de pérdida.
         balance_pct (float): Porcentaje del balance a invertir.
     """
-    # 1️⃣ Calcular la cantidad de compra
-    buy_qty = calculate_trade_quantity(client, symbol, balance_asset='EUR', balance_pct=balance_pct)
-    if buy_qty <= 0:
-        print("❌ Cantidad inválida. Se omite la operación.")
-        logger.warning("Cantidad inválida. Se omite la operación.")
+    # 1️⃣ Calcular cantidad a comprar
+    qty = calculate_trade_quantity(client, symbol, balance_asset='EUR', balance_pct=balance_pct)
+    if qty <= 0:
+        logger.warning("Cantidad calculada <= 0. Operación cancelada.")
         return
 
-    # 2️⃣ Ejecutar la compra al mercado
-    order = place_market_buy(client, symbol, buy_qty)
+    # 2️⃣ Ejecutar compra al mercado
+    order = place_market_buy(client, symbol, qty)
     if not order:
-        print("❌ No se pudo ejecutar la compra.")
-        logger.error("No se pudo ejecutar la compra.")
+        logger.error("Compra no ejecutada. Abortando ciclo.")
         return
 
-    # 3️⃣ Obtener el precio real de entrada de la orden ejecutada
-    entry_price = float(order['fills'][0]['price'])
-    print(f"📌 Precio real de entrada: {entry_price}")
-    logger.info(f"Precio real de entrada: {entry_price}")
+    entry = float(order['fills'][0]['price'])
 
-    # 4️⃣ Calcular niveles de TP y SL según porcentajes definidos
-    tps, sls = compute_tp_sl(entry_price, tp_pcts, sl_pcts)
-    place_tp_sl_orders(client, symbol, buy_qty, entry_price, tps, sls, [0.33, 0.33, 0.34])
+    # 3️⃣ Calcular precios TP y SL
+    tps, sls = compute_tp_sl(entry, tp_pcts, sl_pcts)
 
-    # 5️⃣ Registrar la operación en Excel y logs
-    try:
-        log_trade(
-            order_id=order["orderId"],
-            ticker=symbol,
-            order_type="buy",
-            qty=buy_qty,
-            price_open=entry_price,
-            price_sl=sls[0],
-            price_tp=tps[-1],
-            price_closed=entry_price,
-            pnl=(tps[-1] - entry_price) * buy_qty
-        )
-        print("📒 Operación registrada correctamente en Excel.")
-        logger.info("📒 Operación registrada correctamente en Excel.")
-    except Exception as e:
-        print(f"⚠️ Error al registrar operación: {e}")
-        logger.error(f"Error al registrar operación: {e}")
+    # 4️⃣ Colocar TP/SL (tras limpiar órdenes anteriores)
+    place_tp_sl_orders(client, symbol, qty, entry, tps, sls, [1.0])
 
-    # 6️⃣ Iniciar la monitorización activa de órdenes TP/SL
-    try:
-        print("👁️ Iniciando monitoreo de TP/SL...")
-        monitor_orders(client, symbol, entry_price, buy_qty)
-    except Exception as e:
-        print(f"⚠️ Error en monitorización: {e}")
-        logger.error(f"Error en monitorización: {e}")
+    # 5️⃣ Registrar trade inicial
+    log_trade(order["orderId"], symbol, "buy", qty, entry, sls[0], tps[0], None, 0.0)
+
+    # 6️⃣ Monitorear ejecución (simulada o real)
+    monitor_orders(client, symbol, entry, qty)

@@ -3,25 +3,33 @@
 # =============================================================================
 # 📌 DESCRIPCIÓN GENERAL
 # -----------------------------------------------------------------------------
-# Este módulo se encarga de **supervisar en tiempo real las órdenes abiertas** 
-# (Take Profit y Stop Loss) creadas por el bot en Binance.
+# Este módulo se encarga de **monitorear las operaciones abiertas (TP/SL)** y 
+# ejecutar el cierre correspondiente cuando el precio alcanza los niveles 
+# definidos de Take Profit (TP) o Stop Loss (SL).
 #
-# Su objetivo es detectar cuándo una orden se ejecuta (TP o SL), registrar
-# automáticamente el resultado en los logs y en el archivo Excel de historial,
-# y cancelar de forma segura las órdenes restantes.
+# En **entorno de producción (USE_TESTNET = False)**, el bot confía en que 
+# Binance ejecute automáticamente las órdenes LIMIT y STOP_LOSS_LIMIT cuando 
+# el precio alcance los niveles establecidos.
 #
-# -----------------------------------------------------------------------------
-# 🧠 FUNCIONALIDADES PRINCIPALES:
-#   ✅ Verifica continuamente el estado de las órdenes abiertas en Binance.
-#   ✅ Detecta la ejecución real de TP o SL según el precio de mercado.
-#   ✅ Calcula y normaliza el PnL (positivo en TP, negativo en SL).
-#   ✅ Cancela automáticamente las órdenes no ejecutadas tras un cierre.
-#   ✅ Compatible con modo Testnet (simulación de ejecuciones).
+# En **entorno de testnet (USE_TESTNET = True)**, Binance NO ejecuta 
+# automáticamente las órdenes TP/SL, por lo que este módulo incluye una 
+# **lógica de simulación** que detecta el cruce de precios y fuerza el cierre 
+# virtual, registrando el resultado en el historial de operaciones.
 #
 # -----------------------------------------------------------------------------
-# ⚙️ MODO DE USO:
-#   Se llama desde `execute_trade()` (en order_executor.py) después de colocar
-#   los niveles de TP/SL. Permanece en bucle hasta detectar una ejecución.
+# ⚙️ FUNCIONALIDADES PRINCIPALES:
+#   ✅ Monitorear continuamente el precio actual del símbolo.
+#   ✅ Detectar si el precio alcanza o supera el TP/SL configurado.
+#   ✅ Ejecutar venta simulada (solo en Testnet).
+#   ✅ Registrar en Excel el resultado de la operación (PnL).
+#   ✅ En producción, esperar el estado "FILLED" de las órdenes reales.
+#
+# -----------------------------------------------------------------------------
+# 🧩 DEPENDENCIAS:
+#   - binance.client.Client → para consultar precios y órdenes abiertas.
+#   - config.settings.USE_TESTNET → para diferenciar entorno real/simulado.
+#   - utils.logger → para registrar operaciones cerradas.
+#   - utils.logger_setup.logger → para logs en archivos y consola.
 #
 # -----------------------------------------------------------------------------
 # 👤 Autor: Alejandro Llordén Rodríguez
@@ -31,131 +39,154 @@
 import time
 from utils.logger import log_trade
 from utils.logger_setup import logger
+from config.settings import SYMBOL
+from services.binance_client import USE_TESTNET
 
 
 # =============================================================================
-# 👁️ FUNCIÓN PRINCIPAL: Monitorización de órdenes abiertas
+# 👁️ FUNCIÓN PRINCIPAL: Monitorear y ejecutar TP/SL
 # =============================================================================
-def monitor_orders(client, symbol, open_price, quantity, simulate_testnet=True):
+def monitor_orders(client, symbol: str, open_price: float, quantity: float):
     """
-    Supervisa las órdenes abiertas de un activo (TP/SL) y detecta cuándo se ejecutan.
+    Supervisa las órdenes TP/SL asociadas a una operación abierta.
 
-    El ciclo de monitoreo consulta periódicamente el precio actual y el estado
-    de las órdenes abiertas. Si una se ejecuta, registra el resultado y cancela
-    las órdenes restantes. Si el modo Testnet está activado, se puede simular
-    la ejecución de una orden para pruebas.
+    Si el entorno es Testnet, las órdenes se simulan (ya que Binance no las ejecuta 
+    automáticamente). Si es entorno real, se espera la ejecución real (FILLED) 
+    por parte del motor de Binance.
 
     Args:
-        client (Client): Cliente Binance autenticado.
-        symbol (str): Par de trading (por ejemplo, "BTCEUR" o "BTCUSDC").
+        client (Client): Instancia del cliente Binance autenticado.
+        symbol (str): Par de trading (por ejemplo, "BTCEUR").
         open_price (float): Precio de entrada de la operación.
-        quantity (float): Cantidad comprada.
-        simulate_testnet (bool): Si True, activa modo de simulación en testnet
-            (emula ejecución de órdenes cuando no hay actividad real).
+        quantity (float): Cantidad total comprada.
     """
-    print(f"👁️  Monitoreando {symbol}... Esperando ejecución de TP o SL")
-    logger.info(f"Monitoreando {symbol}... Esperando ejecución de TP o SL")
 
-    active = True
-    executed_order = None  # Almacena información de la orden ejecutada
+    print(f"👁️ Monitoreando {symbol}... esperando ejecución real o simulada de TP/SL.")
+    logger.info(f"Monitoreando {symbol}... esperando ejecución real o simulada de TP/SL.")
 
-    while active:
-        try:
-            # Obtener precio actual del mercado
-            ticker = client.get_symbol_ticker(symbol=symbol)
-            current_price = float(ticker["price"])
+    # -------------------------------------------------------------------------
+    # 🔎 Obtener órdenes TP y SL activas
+    # -------------------------------------------------------------------------
+    try:
+        orders = client.get_open_orders(symbol=symbol)
+        tp_price, sl_price = None, None
 
-            # Recuperar las órdenes abiertas (normalmente TP y SL)
-            open_orders = client.get_open_orders(symbol=symbol)
+        for o in orders:
+            if o["type"] == "LIMIT":
+                tp_price = float(o["price"])
+            elif "STOP" in o["type"]:
+                sl_price = float(o["stopPrice"])
 
-            # Si no hay órdenes abiertas (y no estamos en modo testnet), se detiene
-            if not open_orders and not simulate_testnet:
-                print("⚠️ No se encontraron órdenes abiertas, posible ejecución fuera del monitoreo.")
-                logger.warning("No se encontraron órdenes abiertas, posible ejecución fuera del monitoreo.")
-                break
+        if not tp_price or not sl_price:
+            print("⚠️ No se detectaron órdenes TP/SL válidas.")
+            logger.warning("No se detectaron órdenes TP/SL válidas.")
+            return
 
-            # ---------------------------------------------------------------------
-            # 🔍 Revisión de las órdenes abiertas en busca de ejecución TP o SL
-            # ---------------------------------------------------------------------
-            for order in open_orders:
-                side = order["side"]
-                order_type = order["type"]
-                price = float(order["price"])
-                order_id = order["orderId"]
+        print(f"🎯 TP: {tp_price:.2f} | 🛑 SL: {sl_price:.2f}")
 
-                # 🎯 TAKE PROFIT ejecutado (el precio actual >= precio del TP)
-                if side == "SELL" and "LIMIT" in order_type and current_price >= price:
-                    executed_order = ("TP", price, order_id)
-                    active = False
-                    break
+    except Exception as e:
+        logger.error(f"Error al obtener órdenes: {e}")
+        print(f"❌ Error al obtener órdenes abiertas: {e}")
+        return
 
-                # 🛑 STOP LOSS ejecutado (el precio actual <= precio del SL)
-                elif side == "SELL" and "STOP" in order_type and current_price <= price:
-                    executed_order = ("SL", price, order_id)
-                    active = False
-                    break
+    # -------------------------------------------------------------------------
+    # 🔁 MODO TESTNET → Ejecución simulada
+    # -------------------------------------------------------------------------
+    if USE_TESTNET:
+        print("🧪 Modo TESTNET activo → ejecución de TP/SL simulada.")
+        while True:
+            try:
+                current_price = float(client.get_symbol_ticker(symbol=symbol)["price"])
+                print(f"💹 Precio actual {symbol}: {current_price:.2f}")
+                logger.info(f"Precio actual {symbol}: {current_price:.2f}")
 
-            # ---------------------------------------------------------------------
-            # 🧪 SIMULACIÓN EN TESTNET
-            # ---------------------------------------------------------------------
-            # Si no se ejecuta ninguna orden y estamos en testnet, se simula aleatoriamente
-            if simulate_testnet and not executed_order and len(open_orders) > 0:
-                from random import choice
-                simulated = choice(["TP", "SL", None])
-                if simulated:
-                    price = float(open_orders[0]["price"])
-                    executed_order = (simulated, price, open_orders[0]["orderId"])
-                    print(f"🧪 Simulación Testnet: {simulated} ejecutado a {price}")
-                    logger.info(f"Simulación Testnet: {simulated} ejecutado a {price}")
-                    active = False
+                # =============================================================
+                # 🎯 Detección robusta de TP/SL alcanzado o superado
+                # =============================================================
+                if current_price >= tp_price:
+                    exec_type = "TP"
+                    exec_price = current_price  # Usa precio actual
+                elif current_price <= sl_price:
+                    exec_type = "SL"
+                    exec_price = current_price
+                else:
+                    time.sleep(5)
+                    continue
 
-            # ---------------------------------------------------------------------
-            # ✅ ORDEN EJECUTADA → Registro y limpieza de órdenes restantes
-            # ---------------------------------------------------------------------
-            if executed_order:
-                type_, exec_price, order_id = executed_order
+                # =============================================================
+                # 💰 Calcular PnL (Beneficio o Pérdida)
+                # =============================================================
+                pnl = (exec_price - open_price) * quantity
+                pnl = abs(pnl) if exec_type == "TP" else -abs(pnl)
 
-                # Calcular PnL (positivo si TP, negativo si SL)
-                pnl = (exec_price - open_price) * quantity if type_ == "TP" else -abs((open_price - exec_price) * quantity)
-
-                # Registrar en Excel y logs la ejecución
+                # =============================================================
+                # 🧾 Registrar la ejecución en Excel
+                # =============================================================
                 log_trade(
-                    order_id=order_id,
+                    order_id="SIMULATED",
                     ticker=symbol,
-                    order_type=type_,
+                    order_type=exec_type,
                     qty=quantity,
                     price_open=open_price,
-                    price_sl=open_price if type_ == "SL" else exec_price,
-                    price_tp=exec_price if type_ == "TP" else open_price,
+                    price_sl=sl_price,
+                    price_tp=tp_price,
                     price_closed=exec_price,
                     pnl=pnl
                 )
 
-                print(f"✅ {type_} ejecutado a {exec_price:.2f} | PnL: {pnl:.2f}")
-                logger.info(f"{type_} ejecutado a {exec_price:.2f} | PnL: {pnl:.2f}")
+                print(f"✅ {exec_type} ejecutado a {exec_price:.2f} (simulado) | PnL: {pnl:.4f}")
+                logger.info(f"{exec_type} ejecutado a {exec_price:.2f} (simulado) | PnL: {pnl:.4f}")
+                print("🧾 Monitoreo finalizado correctamente (ejecución simulada detectada).")
+                logger.info("Monitoreo finalizado correctamente (ejecución simulada detectada).")
 
-                # Cancelar las demás órdenes abiertas que no se ejecutaron
-                for o in open_orders:
-                    if o["orderId"] != order_id:
-                        try:
-                            client.cancel_order(symbol=symbol, orderId=o["orderId"])
-                            print(f"🧹 Orden {o['orderId']} cancelada.")
-                            logger.info(f"Orden {o['orderId']} cancelada.")
-                        except Exception as cancel_err:
-                            logger.error(f"No se pudo cancelar orden {o['orderId']}: {cancel_err}")
+                break  # 🛑 salir del bucle tras registrar la ejecución
 
-                print("🧾 Monitoreo finalizado correctamente.")
-                logger.info("Monitoreo finalizado correctamente.")
-                break
+            except Exception as e:
+                logger.error(f"Error en monitorización (simulada): {e}")
+                print(f"⚠️ Error en monitoreo simulado: {e}")
+                time.sleep(10)
 
-            # ---------------------------------------------------------------------
-            # ⏱️ Espera entre comprobaciones (30 segundos)
-            # ---------------------------------------------------------------------
-            time.sleep(30)
+    # -------------------------------------------------------------------------
+    # ⚙️ MODO PRODUCCIÓN → Espera de ejecución real en Binance
+    # -------------------------------------------------------------------------
+    else:
+        print("⚙️ Modo PRODUCCIÓN activo → esperando ejecución real en Binance.")
+        while True:
+            try:
+                # Revisar órdenes abiertas periódicamente
+                open_orders = client.get_open_orders(symbol=symbol)
 
-        except Exception as e:
-            # Manejo de errores durante la ejecución del bucle
-            print(f"⚠️ Error durante la monitorización: {e}")
-            logger.error(f"Error durante la monitorización: {e}")
-            # En caso de error, se espera más tiempo antes del siguiente intento
-            time.sleep(60)
+                # Si ya no hay órdenes abiertas → TP o SL ejecutado
+                if not open_orders:
+                    print("✅ Orden ejecutada en Binance (TP o SL alcanzado).")
+                    logger.info("Orden ejecutada en Binance (TP o SL alcanzado).")
+
+                    # Obtener el precio de cierre real (último precio)
+                    closed_price = float(client.get_symbol_ticker(symbol=symbol)["price"])
+                    pnl = (closed_price - open_price) * quantity
+                    pnl = abs(pnl) if closed_price > open_price else -abs(pnl)
+                    exec_type = "TP" if pnl > 0 else "SL"
+
+                    # Registrar trade cerrado real
+                    log_trade(
+                        order_id="REAL",
+                        ticker=symbol,
+                        order_type=exec_type,
+                        qty=quantity,
+                        price_open=open_price,
+                        price_sl=sl_price,
+                        price_tp=tp_price,
+                        price_closed=closed_price,
+                        pnl=pnl
+                    )
+
+                    print(f"✅ {exec_type} ejecutado a {closed_price:.2f} (real) | PnL: {pnl:.4f}")
+                    logger.info(f"{exec_type} ejecutado a {closed_price:.2f} (real) | PnL: {pnl:.4f}")
+                    break
+
+                time.sleep(5)
+
+            except Exception as e:
+                logger.error(f"Error en monitorización (real): {e}")
+                print(f"⚠️ Error en monitoreo real: {e}")
+                time.sleep(10)

@@ -2,93 +2,46 @@
 # MÓDULO: indicators.py
 # =============================================================================
 # 📌 DESCRIPCIÓN GENERAL
-# -----------------------------------------------------------------------------
-# Este módulo contiene los **indicadores técnicos** utilizados por el bot de trading.
-# 
-# Actualmente incluye:
-#   • EMA (Media Móvil Exponencial)
-#   • RSI (Índice de Fuerza Relativa)
-#
-# Ambos indicadores son herramientas fundamentales en el análisis técnico:
-#   - La **EMA** proporciona una media suavizada que da más peso a los precios
-#     recientes, lo que permite detectar cambios de tendencia más rápido.
-#   - El **RSI** mide la fuerza y velocidad de los movimientos de precio,
-#     ayudando a identificar condiciones de sobrecompra o sobreventa.
-#
-# Estos indicadores son utilizados por el módulo de estrategia para determinar
-# señales de entrada o salida en operaciones.
-#
-# -----------------------------------------------------------------------------
-# 🧩 DEPENDENCIAS:
-#   - pandas
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------- 
+# Contiene los indicadores técnicos usados por el bot: EMA y RSI.
+# Esta versión utiliza el RSI de Wilder (idéntico al de TradingView) y la EMA.
+# ----------------------------------------------------------------------------- 
 # 👤 Autor: Alejandro Llordén Rodríguez
 # 🗓️ Fecha: Octubre 2025
 # =============================================================================
 
 import pandas as pd
 
-
-# =============================================================================
-# 📈 FUNCIÓN: Cálculo de Media Móvil Exponencial (EMA)
-# =============================================================================
 def calculate_ema(data, period):
     """
-    Calcula la **Media Móvil Exponencial (EMA)** de una serie de precios.
-
-    La EMA otorga mayor peso a los precios más recientes, permitiendo una 
-    respuesta más rápida ante cambios de tendencia, a diferencia de la media 
-    móvil simple (SMA), que pondera todos los precios por igual.
-
-    Args:
-        data (pd.DataFrame): DataFrame que contiene al menos una columna `close`
-            con los precios de cierre del activo.
-        period (int): Número de periodos (ventana temporal) a considerar para 
-            el cálculo de la EMA.
-
-    Returns:
-        pd.Series: Serie con los valores de la EMA correspondiente a la columna `close`.
-
-    Ejemplo:
-        >>> df['EMA_20'] = calculate_ema(df, 20)
+    Calcula la Media Móvil Exponencial (EMA).
+    Usa el mismo método que TradingView (ewm con adjust=False).
     """
-    # Se utiliza la función ewm() de pandas para calcular la media móvil exponencial
-    return data['close'].ewm(span=period, adjust=False).mean()
+    return data["close"].ewm(span=period, adjust=False).mean()
 
 
-# =============================================================================
-# 💪 FUNCIÓN: Cálculo del Índice de Fuerza Relativa (RSI)
-# =============================================================================
 def calculate_rsi(data, period=14):
     """
-    Calcula el **Índice de Fuerza Relativa (RSI)** para una serie de precios.
-
-    El RSI es un oscilador que mide la velocidad y el cambio de los movimientos 
-    de precios. Devuelve valores entre 0 y 100, donde:
-        - RSI > 70 indica posible sobrecompra.
-        - RSI < 30 indica posible sobreventa.
+    Calcula el Índice de Fuerza Relativa (RSI) usando el método de Wilder,
+    que es el estándar utilizado por TradingView, MetaTrader y la mayoría
+    de las plataformas profesionales.
 
     Args:
-        data (pd.DataFrame): DataFrame que contiene una columna `close` con los 
-            precios de cierre del activo.
-        period (int, optional): Número de periodos a utilizar en el cálculo.
-            Por defecto, 14 (configuración estándar de Wilder).
+        data (pd.DataFrame): DataFrame con columna 'close'.
+        period (int): Número de periodos para el RSI (por defecto 14).
 
     Returns:
-        pd.Series: Serie con los valores del RSI en el rango [0, 100].
-
-    Ejemplo:
-        >>> df['RSI_14'] = calculate_rsi(df)
+        pd.Series: Serie con los valores de RSI.
     """
-    # Diferencia de precios entre periodos consecutivos
-    delta = data['close'].diff()
+    delta = data["close"].diff()
 
-    # Cálculo de ganancias y pérdidas medias durante el periodo
-    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
 
-    # Cálculo de la relación de fuerza (RS)
-    rs = gain / loss
+    # RSI de Wilder → medias exponenciales suavizadas
+    avg_gain = gain.ewm(alpha=1/period, min_periods=period, adjust=False).mean()
+    avg_loss = loss.ewm(alpha=1/period, min_periods=period, adjust=False).mean()
 
-    # Cálculo del RSI utilizando la fórmula clásica de Wilder
-    return 100 - (100 / (1 + rs))
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+    return rsi
