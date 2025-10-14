@@ -99,7 +99,7 @@ def get_client() -> Client:
         # 🌐 Configurar entorno de conexión
         if USE_TESTNET:
             client.API_URL = "https://testnet.binance.vision/api"
-            print("🧪 Conectado a Binance Spot TESTNET")
+            print("\n🧪 Conectado a Binance Spot TESTNET ✅")
             logger.info("Conectado a Binance Spot TESTNET.")
         else:
             print("⚠️ Conectado a Binance REAL (producción)")

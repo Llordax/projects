@@ -3,39 +3,41 @@
 # =============================================================================
 # 📌 DESCRIPCIÓN GENERAL
 # -----------------------------------------------------------------------------
-# Este módulo controla todo el flujo operativo de ejecución del bot:
-#   1. Cálculo de cantidad según balance y porcentaje configurado.
-#   2. Ejecución de la orden (compra o simulación de venta).
-#   3. Colocación de órdenes de Take Profit (TP) y Stop Loss (SL).
-#   4. Registro del trade y monitoreo posterior.
+# Controla el flujo completo de ejecución de una operación:
+#   1. Cálculo del tamaño de posición (según balance y % configurado).
+#   2. Ejecución de la orden (LONG real o SHORT simulado).
+#   3. Colocación de Take Profit (TP) y Stop Loss (SL).
+#   4. Registro del trade en Excel y logs.
+#   5. Lanzamiento del monitoreo TP/SL en un hilo paralelo (thread-safe).
 #
-# 🚀 Versión TENDENCIA EMA200 + RSI:
-#   - Admite operaciones LONG y SHORT.
-#   - Ratio riesgo/beneficio 1:1.3.
-#   - Uso del 33.33% del balance por operación.
+# 🚀 Versión paralelizada (EMA200 + RSI)
+#   - Cada operación se ejecuta con un ID único (UUID8).
+#   - Monitoreo concurrente mediante threading.Thread (modo daemon).
+#   - Ratio riesgo/beneficio = 1:1.3.
+#   - Capital usado por operación = 33.33%.
 #
 # ⚙️ NOTA IMPORTANTE:
-#   - En Binance Spot Testnet no se pueden abrir posiciones cortas reales.
-#     Por lo tanto, las operaciones SHORT se simulan para backtesting.
+#   - En Binance Spot Testnet no hay operaciones SHORT reales, se simulan.
+#   - Cada hilo supervisa una operación concreta, evitando cierres duplicados.
 # -----------------------------------------------------------------------------
 # 👤 Autor: Alejandro Llordén Rodríguez
 # 🗓️ Fecha: Octubre 2025
 # =============================================================================
 
+import math
+import threading
+import uuid  # 🆕 Para generar IDs únicos por operación
 from binance.client import Client
-from core.risk_management import compute_tp_sl
 from core.order_monitor import monitor_orders
 from utils.logger import log_trade
 from utils.logger_setup import logger
-import math
-import time
 
 
 # =============================================================================
 # 🔢 FUNCIÓN: Ajustar cantidad según filtros de Binance
 # =============================================================================
 def adjust_quantity_to_filters(client: Client, symbol: str, quantity: float, price: float) -> float:
-    """Ajusta la cantidad de compra o venta según los filtros de Binance."""
+    """Ajusta la cantidad según los filtros de Binance (LOT_SIZE, MIN_NOTIONAL)."""
     try:
         info = client.get_symbol_info(symbol)
         lot, min_qty, min_notional = None, None, None
@@ -61,10 +63,38 @@ def adjust_quantity_to_filters(client: Client, symbol: str, quantity: float, pri
 
 
 # =============================================================================
-# 🟢 FUNCIÓN: Ejecutar orden de compra al mercado
+# 💰 FUNCIÓN: Calcular cantidad según balance
+# =============================================================================
+def calculate_trade_quantity(client: Client, symbol: str, balance_asset: str = 'EUR', balance_pct: float = 0.3333) -> float:
+    """Calcula la cantidad a tradear según el balance disponible y el % asignado."""
+    try:
+        balances = client.get_account()['balances']
+        asset_balance = next(
+            (float(b['free']) for b in balances if b['asset'] == balance_asset), 0.0
+        )
+
+        if asset_balance <= 0:
+            print(f"⚠️ No hay saldo disponible en {balance_asset}.")
+            logger.warning(f"No hay saldo disponible en {balance_asset}.")
+            return 0.0
+
+        invest_amount = asset_balance * balance_pct
+        price = float(client.get_symbol_ticker(symbol=symbol)['price'])
+        qty = invest_amount / price
+        qty = adjust_quantity_to_filters(client, symbol, qty, price)
+        return qty
+
+    except Exception as e:
+        logger.error(f"Error al calcular cantidad: {e}")
+        print(f"❌ Error al calcular cantidad: {e}")
+        return 0.0
+
+
+# =============================================================================
+# 🟢 FUNCIÓN: Ejecutar compra al mercado
 # =============================================================================
 def place_market_buy(client: Client, symbol: str, quantity: float):
-    """Ejecuta una orden de compra al mercado."""
+    """Ejecuta una orden de compra al mercado (LONG real)."""
     try:
         price = float(client.get_symbol_ticker(symbol=symbol)['price'])
         quantity = adjust_quantity_to_filters(client, symbol, quantity, price)
@@ -80,53 +110,90 @@ def place_market_buy(client: Client, symbol: str, quantity: float):
 
 
 # =============================================================================
-# 💰 FUNCIÓN PRINCIPAL: Ejecutar operación LONG o SHORT
+# 🎯 FUNCIÓN: Colocar órdenes TP/SL
+# =============================================================================
+def place_tp_sl_orders(client: Client, symbol: str, quantity: float, entry_price: float,
+                       tp_prices: list, sl_prices: list, portions: list, trade_type: str):
+    """Crea las órdenes de Take Profit y Stop Loss para la operación."""
+    try:
+        for tp, sl, portion in zip(tp_prices, sl_prices, portions):
+            qty = quantity * portion
+            qty = adjust_quantity_to_filters(client, symbol, qty, entry_price)
+
+            print(f"📈 Configurando {trade_type} → TP: {tp:.2f} | SL: {sl:.2f}")
+            logger.info(f"Configurando {trade_type} → TP: {tp:.2f} | SL: {sl:.2f}")
+
+            side = "SELL" if trade_type == "LONG" else "BUY"
+
+            client.create_order(
+                symbol=symbol,
+                side=side,
+                type="LIMIT",
+                quantity=qty,
+                price=f"{tp:.2f}",
+                timeInForce="GTC"
+            )
+            client.create_order(
+                symbol=symbol,
+                side=side,
+                type="STOP_LOSS_LIMIT",
+                quantity=qty,
+                price=f"{sl:.2f}",
+                stopPrice=f"{sl:.2f}",
+                timeInForce="GTC"
+            )
+
+        print("✅ Órdenes TP/SL colocadas correctamente.")
+        logger.info("Órdenes TP/SL colocadas correctamente.")
+    except Exception as e:
+        print(f"❌ Error al colocar TP/SL: {e}")
+        logger.error(f"Error al colocar TP/SL: {e}")
+
+
+# =============================================================================
+# 💰 FUNCIÓN PRINCIPAL: Ejecutar trade (con ID y threading)
 # =============================================================================
 def execute_trade(client: Client, df, symbol: str, tp_pcts: list, sl_pcts: list,
                   balance_pct: float, trade_type: str):
     """
-    Flujo completo de ejecución de una operación (LONG o SHORT).
-
-    Args:
-        client (Client): Cliente de Binance autenticado.
-        df (pd.DataFrame): DataFrame de precios.
-        symbol (str): Par de trading.
-        tp_pcts (list): Porcentaje(s) de Take Profit.
-        sl_pcts (list): Porcentaje(s) de Stop Loss.
-        balance_pct (float): Porcentaje de capital a invertir.
-        trade_type (str): "LONG" o "SHORT".
+    Ejecuta una operación LONG o SHORT con monitoreo en hilo paralelo.
+    Cada operación obtiene un ID único (trade_id) para evitar duplicaciones.
     """
-    # 1️⃣ Calcular cantidad a comprar/vender
-    from core.order_executor import calculate_trade_quantity
     qty = calculate_trade_quantity(client, symbol, balance_asset='EUR', balance_pct=balance_pct)
     if qty <= 0:
         logger.warning("Cantidad calculada <= 0. Operación cancelada.")
-        return
+        return None
 
-    # 2️⃣ Obtener precio actual
     entry_price = float(client.get_symbol_ticker(symbol=symbol)['price'])
+    trade_id = str(uuid.uuid4())[:8]  # 🆕 ID único para esta operación
 
-    # 3️⃣ Ejecución según tipo de trade
     if trade_type == "LONG":
-        print(f"🟢 Ejecutando LONG en {symbol} @ {entry_price:.2f}")
+        print(f"🟢 Ejecutando LONG ({trade_id}) en {symbol} @ {entry_price:.2f}")
         order = place_market_buy(client, symbol, qty)
         tps = [entry_price * (1 + tp_pcts[0])]
         sls = [entry_price * (1 - sl_pcts[0])]
+        order_id = order["orderId"] if order else f"SIMULATED_LONG_{trade_id}"
     else:
-        print(f"🔴 Ejecutando SHORT (simulado) en {symbol} @ {entry_price:.2f}")
-        order = {"orderId": "SIMULATED_SHORT", "fills": [{"price": str(entry_price)}]}
+        print(f"🔴 Ejecutando SHORT (simulado) ({trade_id}) en {symbol} @ {entry_price:.2f}")
+        order = {"orderId": f"SIMULATED_SHORT_{trade_id}", "fills": [{"price": str(entry_price)}]}
         tps = [entry_price * (1 - tp_pcts[0])]
         sls = [entry_price * (1 + sl_pcts[0])]
+        order_id = order["orderId"]
 
     if not order:
         logger.error("❌ No se pudo ejecutar la orden. Abortando ciclo.")
-        return
+        return None
 
-    # 4️⃣ Colocar TP/SL (o simularlos en SHORT)
-    place_tp_sl_orders(client, symbol, qty, entry_price, tps, sls, [1.0])
+    place_tp_sl_orders(client, symbol, qty, entry_price, tps, sls, [1.0], trade_type)
 
-    # 5️⃣ Registrar operación
-    log_trade(order["orderId"], symbol, trade_type.lower(), qty, entry_price, sls[0], tps[0], None, 0.0)
+    log_trade(order_id, symbol, trade_type.lower(), qty, entry_price, sls[0], tps[0], None, 0.0)
 
-    # 6️⃣ Monitorear ejecución (simulada o real)
-    monitor_orders(client, symbol, entry_price, qty)
+    # 🧵 Lanzar monitoreo paralelo con ID único
+    threading.Thread(
+        target=monitor_orders,
+        args=(client, symbol, entry_price, qty, tps[0], sls[0], trade_type, order_id),
+        daemon=True
+    ).start()
+
+    logger.info(f"🚀 Hilo de monitoreo iniciado para {symbol} ({trade_type}) ID={order_id}")
+    return order
