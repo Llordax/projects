@@ -19,7 +19,7 @@
 #   • Si no se cumple ninguna de las dos condiciones, se considera LATERAL.
 #
 # CONDICIONES DE ENTRADA:
-#   • LONG → Tendencia alcista + RSI(14) < 50
+#   • LONG → Tendencia alcista + RSI(14) < 40
 #   • SHORT → Tendencia bajista + RSI(14) > 60
 #
 # Todas las evaluaciones se registran en consola y en logs para trazabilidad.
@@ -99,11 +99,11 @@ def analyze_market(df: pd.DataFrame, ema_period: int, rsi_period: int):
     signal = False
     trade_type = None
 
-    if trend == "ALCISTA" and rsi < 50:
+    if trend == "ALCISTA" and rsi < 40:
         signal = True
         trade_type = "LONG"
         msg_entry = (
-            f"✅ Condiciones de entrada LONG detectadas: tendencia ALCISTA y RSI={rsi:.2f} < 50."
+            f"✅ Condiciones de entrada LONG detectadas: tendencia ALCISTA y RSI={rsi:.2f} < 40."
         )
         print(msg_entry)
         logger.info(msg_entry)

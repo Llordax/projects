@@ -40,8 +40,8 @@ EMA_TREND_PERIOD = 200      # EMA utilizada para detectar la tendencia principal
 SL_PCT_LONG = 0.0165        # -1.65% para operaciones en largo
 TP_PCT_LONG = 0.0211        # +2.11% para operaciones en largo
 
-SL_PCT_SHORT = 0.0165       # +1.65% para operaciones en corto (inverso)
-TP_PCT_SHORT = 0.0211       # -2.11% para operaciones en corto (inverso)
+SL_PCT_SHORT = 0.0075       # +0.75% para operaciones en corto (inverso)
+TP_PCT_SHORT = 0.0125       # -1.25% para operaciones en corto (inverso)
 
 CAPITAL_ALLOCATION = 0.3333  # 33.33% del balance disponible en cada operación
 
