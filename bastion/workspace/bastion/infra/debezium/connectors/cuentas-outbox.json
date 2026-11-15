@@ -1,0 +1,30 @@
+{
+  "name": "bastion-cuentas-outbox",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "bastion_cuentas",
+    "database.password": "bastion_cuentas_local",
+    "database.dbname": "bastion_cuentas",
+    "topic.prefix": "bastion.cuentas",
+    "plugin.name": "pgoutput",
+    "slot.name": "bastion_cuentas_slot",
+    "publication.name": "bastion_cuentas_publication",
+    "publication.autocreate.mode": "filtered",
+    "table.include.list": "public.outbox_event",
+    "snapshot.mode": "initial",
+    "transforms": "outbox",
+    "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+    "transforms.outbox.table.field.event.id": "id",
+    "transforms.outbox.table.field.event.key": "aggregateid",
+    "transforms.outbox.table.field.event.payload": "payload",
+    "transforms.outbox.route.by.field": "aggregatetype",
+    "transforms.outbox.route.topic.replacement": "bastion.${routedByValue}.v1",
+    "transforms.outbox.table.fields.additional.placement": "type:header:eventType",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false"
+  }
+}

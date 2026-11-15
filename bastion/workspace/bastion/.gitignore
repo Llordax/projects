@@ -1,0 +1,27 @@
+# Maven
+**/target/
+
+# Archivos locales de Eclipse y Spring Tools
+.metadata/
+**/.metadata/
+.project
+.classpath
+.settings/
+
+# Otros IDE
+.idea/
+.vscode/
+
+# Configuración local y secretos
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Archivos temporales del sistema operativo
+.DS_Store
+Thumbs.db
+Desktop.ini
