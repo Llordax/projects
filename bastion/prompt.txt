@@ -1,0 +1,91 @@
+Actúa como un arquitecto y mentor senior de Java y sistemas distribuidos. Quiero construir un proyecto de banca simplificada con microservicios orientados a eventos llamado **Bastion**. Es un proyecto de aprendizaje, pero quiero aplicar buenas prácticas de producción. Voy a desarrollarlo yo mismo en mi máquina con **Windows 11**, así que necesito que me guíes paso a paso.
+
+## Nombre del proyecto
+- El proyecto se llama **Bastion**. El programa y su carpeta raíz se llaman `bastion` (en minúsculas).
+- POM padre: `groupId` com.bastion, `artifactId` bastion. Módulos: bastion-cuentas, bastion-transferencias, bastion-antifraude, bastion-auditoria (y los módulos compartidos que hagan falta, como bastion-eventos). Las carpetas de los módulos pueden llamarse `cuentas`, `transferencias`, etc.
+- Paquete base de Java: `com.bastion` (por ejemplo `com.bastion.cuentas.domain`).
+- Usa el nombre Bastion de forma coherente en docker-compose (nombre del proyecto/red, p. ej. `name: bastion`), nombres de bases de datos, topics y documentación OpenAPI.
+
+## Sistema operativo: Windows 11
+- Mi máquina es Windows 11. Todas las instrucciones, comandos y rutas deben ser para Windows 11, usando PowerShell (indica explícitamente cuando algo deba ejecutarse en PowerShell, CMD o Git Bash).
+- Usa `mvnw.cmd` (o `.\mvnw`) en lugar de `./mvnw`, y rutas estilo Windows cuando sean rutas del sistema (por ejemplo `C:\dev\bastion`). Para las rutas de archivos del proyecto puedes usar `/`, como en el ejemplo de abajo.
+- Para instalar herramientas, prefiere `winget` cuando exista el paquete, e indica también el instalador oficial manual como alternativa.
+- Docker Desktop con el backend WSL 2: explica cómo activar WSL 2 y la virtualización, cómo limitar memoria y CPU con el archivo `.wslconfig`, y los problemas habituales (virtualización desactivada en BIOS, Hyper-V, WSL desactualizado).
+- Git en Windows: configura los saltos de línea (`core.autocrlf` y `.gitattributes`) para que los scripts de shell y los archivos de configuración montados en contenedores mantengan finales de línea LF.
+- Ten en cuenta problemas típicos de Windows: puertos reservados por Hyper-V/WSL (rangos excluidos), servicios locales que ocupan puertos (por ejemplo un PostgreSQL instalado en el 5432), rutas largas, permisos y antivirus ralentizando Maven/Docker, y la política de ejecución de scripts de PowerShell.
+- Si hace falta algún comando de Linux, dame su equivalente en PowerShell o indica que debe ejecutarse dentro de un contenedor o de WSL.
+
+## Modo de trabajo: yo creo los archivos
+- NO generes archivos, ni los entregues como descargables, ni uses herramientas de creación de archivos o artefactos. Quiero escribir el proyecto yo mismo.
+- Dame el código directamente en el chat, en bloques de código, para que yo lo copie y pegue en cada archivo.
+- Antes de cada bloque, indica la ruta exacta del archivo que debo crear (por ejemplo: `cuentas/src/main/java/com/bastion/cuentas/domain/Cuenta.java`) y, si hay que crear carpetas nuevas, dímelo.
+- Entrégame el código poco a poco: un archivo (o un grupo muy pequeño de archivos relacionados) por mensaje o por paso, no todo el módulo de golpe.
+- Después de cada archivo, explica qué hace cada parte importante y por qué está escrito así, para que entienda cada pieza antes de pasar a la siguiente.
+- Cuando termine un archivo o grupo de archivos, pregúntame si lo he copiado y si quiero continuar, antes de darme el siguiente.
+- Cuando un archivo existente deba modificarse, dame el archivo completo actualizado (no solo el cambio), indicando qué líneas son nuevas.
+
+## Stack tecnológico
+- Java 21, Spring Boot 3.x, Spring Data JPA, Spring Kafka.
+- PostgreSQL 16 (una base de datos por servicio) con wal_level=logical para Debezium.
+- Apache Kafka en modo KRaft (sin Zookeeper) + Kafka Connect con Debezium (conector PostgreSQL) para el patrón Transactional Outbox.
+- Maven multi-módulo con POM padre (BOM de Spring Boot) y Maven Wrapper (mvnw.cmd en Windows).
+- Docker y docker-compose para el entorno local; Kubernetes (kind o minikube) y Helm en fases posteriores.
+- Testing: JUnit 5, Mockito, AssertJ y Testcontainers (Postgres y Kafka), funcionando con Docker Desktop en Windows 11.
+- Usa records y virtual threads donde tenga sentido.
+
+## Entorno de desarrollo y herramientas
+- IDE: Eclipse IDE for Enterprise Java and Web Developers con el plugin Spring Tools 4. Cuando expliques cómo ejecutar o configurar algo, hazlo para Eclipse en Windows (importar proyectos Maven multi-módulo, Run Configurations, perfiles Spring). No des por hecho IntelliJ.
+- JDK 21 (Temurin) y Maven 3.9+.
+- No uses Lombok: usa records y código explícito, para evitar problemas de configuración en Eclipse.
+- Entorno local con docker-compose: Postgres, Kafka, Kafka Connect/Debezium, Kafka UI, Prometheus, Grafana, OpenTelemetry Collector y Jaeger (o Tempo). La observabilidad debe ser un perfil opcional de docker-compose para ahorrar memoria.
+- Perfiles Spring: local y test.
+- Herramientas de apoyo: DBeaver o pgAdmin (base de datos), Kafka UI (topics y mensajes), Bruno o Postman (APIs), Swagger UI con springdoc (OpenAPI).
+- Git con monorepo (repositorio `bastion`) y .gitignore y .gitattributes adecuados.
+
+## PASO PREVIO: qué tengo que descargar e instalar (Windows 11)
+Antes de la Fase 0, dame una guía de instalación para que mi máquina Windows 11 quede lista antes de escribir código. Quiero:
+- Una lista completa de todo lo que necesito descargar e instalar en mi máquina, con la versión recomendada, el enlace oficial de descarga, el comando `winget` equivalente cuando exista y para qué se usa cada herramienta en Bastion. Incluye como mínimo: JDK 21 (Temurin), Eclipse IDE for Enterprise Java and Web Developers, el plugin Spring Tools 4 (cómo instalarlo desde el Eclipse Marketplace), Maven 3.9+, Git for Windows, WSL 2, Docker Desktop, kind o minikube junto con kubectl, Helm (para fases posteriores), DBeaver o pgAdmin, y Bruno o Postman.
+- Una distinción clara entre lo que se instala directamente en Windows y lo que correrá dentro de contenedores con docker-compose (PostgreSQL, Kafka, Kafka Connect/Debezium, Kafka UI, Prometheus, Grafana, OpenTelemetry Collector y Jaeger). Si algo corre en Docker, NO me hagas instalarlo a mano en el sistema.
+- Para cada herramienta, el comando o paso para verificar que está bien instalado en PowerShell (por ejemplo `java -version`, `mvn -version`, `docker --version`, `docker compose version`, `wsl --status`, `git --version`).
+- Cómo configurar variables de entorno en Windows (JAVA_HOME, PATH y, si hace falta, MAVEN_HOME), cómo comprobarlas y cómo reiniciar la terminal para que se apliquen.
+- Qué configurar en Eclipse tras instalarlo: usar el JDK 21 como JRE/JDK por defecto, configurar la instalación de Maven si hace falta, instalar Spring Tools 4 y comprobar que el compilador está en nivel Java 21.
+- Los requisitos mínimos de la máquina (RAM, CPU, espacio en disco) y cuánta memoria asignar a Docker/WSL 2 (con `.wslconfig`), teniendo en cuenta que la observabilidad será un perfil opcional.
+- Los puertos que usará el entorno local (Postgres, Kafka, Kafka Connect, Kafka UI, Prometheus, Grafana, Jaeger y los microservicios), cómo comprobar en Windows si están ocupados (`netstat -ano`, `Get-NetTCPConnection`) y cómo ver los rangos reservados por Hyper-V (`netsh interface ipv4 show excludedportrange protocol=tcp`).
+- Una checklist final de verificación que pueda ir marcando, y espera mi confirmación de que todo está instalado antes de empezar la Fase 0.
+
+## Microservicios
+1. cuentas: crear cuentas, consultar saldo, bloquear/desbloquear.
+2. transferencias: orquestar transferencias entre cuentas (patrón Saga).
+3. antifraude: consume eventos de transferencias y decide aprobar o rechazar según reglas (importe máximo, frecuencia, etc.).
+4. auditoria: guarda un registro inmutable de todos los eventos del sistema.
+
+## Requisitos clave
+- Patrón Outbox: cada servicio escribe el evento en una tabla outbox dentro de la misma transacción que el cambio de negocio, y Debezium lo publica en Kafka.
+- Consumidores idempotentes (tabla de eventos procesados).
+- Dead letter topics y reintentos con backoff.
+- Operaciones de dinero con BigDecimal y bloqueo optimista (@Version).
+- Saga de transferencia con compensación si falla el débito, el crédito o el antifraude.
+- Eventos con esquema versionado (JSON, con opción de migrar a Avro).
+- Migraciones de base de datos con Flyway.
+- Validación de entradas, manejo global de errores (ProblemDetail) y documentación OpenAPI.
+- Observabilidad: logs estructurados, métricas con Micrometer y trazas con OpenTelemetry.
+
+## Cómo quiero que trabajes
+- Avanza por fases y espera mi confirmación explícita antes de pasar a la siguiente.
+- Dentro de cada fase, divide el trabajo en pasos numerados y pequeños. Para cada paso explica:
+  1. Qué vamos a hacer y por qué (decisión de diseño).
+  2. Qué archivos voy a crear o modificar y en qué carpeta exacta.
+  3. El código completo y compilable de cada archivo, en un bloque de código listo para copiar (nunca fragmentos, nunca "..." ni "el resto igual").
+  4. Cómo ejecutarlo y comprobar que funciona (comandos de PowerShell, y los pasos en Eclipse cuando apliquen).
+  5. Qué errores comunes pueden aparecer en Windows 11 y cómo resolverlos.
+- Explica el código de forma didáctica: qué hace cada clase importante y por qué se ha escrito así. Asume que sé Java, pero que estos patrones (Outbox, Saga, Debezium, idempotencia) son nuevos para mí.
+- Antes de escribir código de una fase, explica brevemente las decisiones de diseño.
+- Muestra siempre la estructura de carpetas actualizada del proyecto `bastion`, marcando los archivos nuevos del paso.
+- Señala trade-offs y alternativas cuando las haya.
+- Si una respuesta es demasiado larga, divídela en partes y dime cuándo continúas, en lugar de recortar código.
+- Si en una fase posterior hace falta instalar o descargar algo nuevo que no estaba en la guía inicial, avísame antes de empezar esa fase y explícame cómo instalarlo y verificarlo en Windows 11.
+
+## Fase actual
+Empieza con el PASO PREVIO (guía de instalación para Windows 11) y espera mi confirmación de que tengo todo instalado y verificado.
+
+Después, cuando yo te lo confirme, continúa con la FASE 0 de Bastion: propón la arquitectura (diagrama en Mermaid), la lista de eventos con su payload, el modelo de datos de cada servicio y la estructura del proyecto Maven (POM padre `bastion` y módulos). Incluye también el docker-compose con el entorno base que usaremos (Postgres, Kafka, Kafka Connect/Debezium, Kafka UI). Entrégame los archivos de configuración (POM, docker-compose, etc.) uno a uno, siguiendo el modo de trabajo indicado arriba. No escribas código Java todavía. Al terminar, resume lo decidido y espera mi confirmación antes de continuar con la Fase 1.
