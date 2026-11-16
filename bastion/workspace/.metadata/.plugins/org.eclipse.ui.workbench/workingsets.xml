@@ -2,5 +2,12 @@
 <workingSetManager>
 <workingSet editPageId="org.eclipse.jdt.internal.ui.DynamicSourcesWorkingSet" factoryID="org.eclipse.ui.internal.WorkingSetFactory" id="1794764267981_0" label="Java Main Sources" name="Java Main Sources"/>
 <workingSet editPageId="org.eclipse.jdt.internal.ui.DynamicSourcesWorkingSet" factoryID="org.eclipse.ui.internal.WorkingSetFactory" id="1794764267995_1" label="Java Test Sources" name="Java Test Sources"/>
+<workingSet editPageId="org.eclipse.ui.resourceWorkingSetPage" factoryID="org.eclipse.ui.internal.WorkingSetFactory" id="1794816775107_3" label="bastion" name="bastion">
+<item factoryID="org.eclipse.ui.internal.model.ResourceFactory" path="/bastion-antifraude" type="4"/>
+<item factoryID="org.eclipse.ui.internal.model.ResourceFactory" path="/bastion-auditoria" type="4"/>
+<item factoryID="org.eclipse.ui.internal.model.ResourceFactory" path="/bastion-cuentas" type="4"/>
+<item factoryID="org.eclipse.ui.internal.model.ResourceFactory" path="/bastion-eventos" type="4"/>
+<item factoryID="org.eclipse.ui.internal.model.ResourceFactory" path="/bastion-transferencias" type="4"/>
+</workingSet>
 <workingSet aggregate="true" factoryID="org.eclipse.ui.internal.WorkingSetFactory" id="1794764276204_2" label="Window Working Set" name="Aggregate for window 1794764276204"/>
 </workingSetManager>
