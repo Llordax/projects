@@ -1,2 +1,21 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<qualifiedTypeNameHistroy/>
+<qualifiedTypeNameHistroy>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.transferencias.TransferenciaSolicitadaData"/>
+    <fullyQualifiedTypeName name="java.util.List"/>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.transferencias.TransferenciaAprobadaData"/>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.transferencias.TransferenciaRechazadaData"/>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.cuentas.DebitoSolicitadoData"/>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.cuentas.DebitoRealizadoData"/>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.cuentas.DebitoRechazadoData"/>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.cuentas.CreditoSolicitadoData"/>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.cuentas.CreditoRealizadoData"/>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.cuentas.CreditoRechazadoData"/>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.cuentas.CompensacionSolicitadaData"/>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.cuentas.CompensacionRealizadaData"/>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.cuentas.CompensacionRechazadaData"/>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.transferencias.TransferenciaCompletadaData"/>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.transferencias.TransferenciaCompensadaData"/>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.cuentas.CuentaCreadaData"/>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.cuentas.CuentaBloqueadaData"/>
+    <fullyQualifiedTypeName name="com.bastion.eventos.contrato.cuentas.CuentaDesbloqueadaData"/>
+</qualifiedTypeNameHistroy>
