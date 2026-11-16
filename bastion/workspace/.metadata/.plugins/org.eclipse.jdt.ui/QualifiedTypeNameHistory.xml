@@ -18,4 +18,9 @@
     <fullyQualifiedTypeName name="com.bastion.eventos.contrato.cuentas.CuentaCreadaData"/>
     <fullyQualifiedTypeName name="com.bastion.eventos.contrato.cuentas.CuentaBloqueadaData"/>
     <fullyQualifiedTypeName name="com.bastion.eventos.contrato.cuentas.CuentaDesbloqueadaData"/>
+    <fullyQualifiedTypeName name="java.util.Currency"/>
+    <fullyQualifiedTypeName name="com.bastion.cuentas.application.port.in.CrearCuentaUseCase"/>
+    <fullyQualifiedTypeName name="java.util.Objects"/>
+    <fullyQualifiedTypeName name="java.util.Optional"/>
+    <fullyQualifiedTypeName name="java.util.UUID"/>
 </qualifiedTypeNameHistroy>
