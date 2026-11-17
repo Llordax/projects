@@ -58,7 +58,7 @@
 		<item key="create_unimplemented" value="false"/>
 	</section>
 	<section name="NewEnumCreationWizard.dialogBounds">
-		<item key="DIALOG_X_ORIGIN" value="484"/>
+		<item key="DIALOG_X_ORIGIN" value="361"/>
 		<item key="DIALOG_Y_ORIGIN" value="65"/>
 		<item key="DIALOG_WIDTH" value="583"/>
 		<item key="DIALOG_HEIGHT" value="525"/>
@@ -68,7 +68,7 @@
 		<item key="pageIndex" value="3"/>
 	</section>
 	<section name="NewSourceFolderCreationWizard.dialogBounds">
-		<item key="DIALOG_X_ORIGIN" value="495"/>
+		<item key="DIALOG_X_ORIGIN" value="384"/>
 		<item key="DIALOG_Y_ORIGIN" value="124"/>
 		<item key="DIALOG_WIDTH" value="560"/>
 		<item key="DIALOG_HEIGHT" value="500"/>
@@ -79,6 +79,13 @@
 		<item key="DIALOG_Y_ORIGIN" value="45"/>
 		<item key="DIALOG_WIDTH" value="599"/>
 		<item key="DIALOG_HEIGHT" value="549"/>
+		<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-15|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
+	</section>
+	<section name="NewTestSourceFolderCreationWizard.dialogBounds">
+		<item key="DIALOG_X_ORIGIN" value="195"/>
+		<item key="DIALOG_Y_ORIGIN" value="120"/>
+		<item key="DIALOG_WIDTH" value="560"/>
+		<item key="DIALOG_HEIGHT" value="500"/>
 		<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-15|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
 	</section>
 </section>

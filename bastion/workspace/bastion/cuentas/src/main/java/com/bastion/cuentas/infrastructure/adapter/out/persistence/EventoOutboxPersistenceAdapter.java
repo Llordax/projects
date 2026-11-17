@@ -3,6 +3,8 @@ package com.bastion.cuentas.infrastructure.adapter.out.persistence;
 import java.util.Objects;
 
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.bastion.cuentas.application.port.out.EventoOutboxPort;
 import com.bastion.cuentas.infrastructure.persistence.entity.OutboxJpaEntity;
@@ -31,7 +33,18 @@ public class EventoOutboxPersistenceAdapter implements EventoOutboxPort {
     }
 
     @Override
+    @Transactional
     public void registrar(Evento<?> evento) {
+        guardarEvento(evento);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void registrarRechazo(Evento<?> evento) {
+        guardarEvento(evento);
+    }
+
+    private void guardarEvento(Evento<?> evento) {
         Objects.requireNonNull(evento, "evento no puede ser null");
 
         var payload = objectMapper.valueToTree(evento);

@@ -121,7 +121,12 @@ public class CuentaController {
             @PathVariable("cuentaId") UUID cuentaId,
             @Valid @RequestBody MovimientoCuentaRequest request
     ) {
-        Cuenta cuenta = acreditarCuentaUseCase.ejecutar(cuentaId, request.importe());
+        Cuenta cuenta = acreditarCuentaUseCase.ejecutar(
+                cuentaId,
+                request.transferenciaId(),
+                request.importe()
+        );
+
         return CuentaResponse.desdeDominio(cuenta);
     }
 
@@ -130,7 +135,12 @@ public class CuentaController {
             @PathVariable("cuentaId") UUID cuentaId,
             @Valid @RequestBody MovimientoCuentaRequest request
     ) {
-        Cuenta cuenta = debitarCuentaUseCase.ejecutar(cuentaId, request.importe());
+        Cuenta cuenta = debitarCuentaUseCase.ejecutar(
+                cuentaId,
+                request.transferenciaId(),
+                request.importe()
+        );
+
         return CuentaResponse.desdeDominio(cuenta);
     }
 }
