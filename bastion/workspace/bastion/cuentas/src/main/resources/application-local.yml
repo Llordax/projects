@@ -1,0 +1,20 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: bastion-cuentas
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bastion_cuentas
+    username: bastion_cuentas
+    password: bastion_cuentas_local
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: true

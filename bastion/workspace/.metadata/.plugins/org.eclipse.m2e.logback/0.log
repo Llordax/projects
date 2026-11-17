@@ -2754,3 +2754,5 @@ org.eclipse.core.runtime.CoreException: Could not resolve artifact org.webjars:s
 2026-11-16 09:41:36,827 [Worker-2: Loading available Gradle versions] INFO  o.e.b.c.i.u.g.PublishedGradleVersions - Gradle version information cache is up-to-date. Trying to read.
 2026-11-16 20:41:28,398 [Worker-5: Loading available Gradle versions] INFO  o.e.b.c.i.u.g.PublishedGradleVersions - Gradle version information cache is out-of-date. Trying to update.
 2026-11-16 20:42:18,851 [Worker-2: Check for devtools] INFO  o.e.m.c.i.p.WorkspaceClassifierResolverManager - Resolving P/bastion-eventos: com.bastion:bastion-eventos:1.0.0-SNAPSHOT with classifier  to /bastion-eventos/target/classes
+2026-11-17 11:11:01,032 [Worker-3: Loading available Gradle versions] INFO  o.e.b.c.i.u.g.PublishedGradleVersions - Gradle version information cache is up-to-date. Trying to read.
+2026-11-17 11:11:58,897 [Worker-6: Check for devtools] INFO  o.e.m.c.i.p.WorkspaceClassifierResolverManager - Resolving P/bastion-eventos: com.bastion:bastion-eventos:1.0.0-SNAPSHOT with classifier  to /bastion-eventos/target/classes
