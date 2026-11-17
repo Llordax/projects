@@ -4,5 +4,5 @@ import java.util.UUID;
 
 public interface DesbloquearCuentaUseCase {
 
-    boolean ejecutar(UUID cuentaId);
+    boolean ejecutar(UUID cuentaId, String motivo);
 }
