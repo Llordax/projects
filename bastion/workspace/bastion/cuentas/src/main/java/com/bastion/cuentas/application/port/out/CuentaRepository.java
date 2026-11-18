@@ -1,4 +1,4 @@
-package com.bastion.cuentas.domain.port.out;
+package com.bastion.cuentas.application.port.out;
 
 import java.util.Optional;
 import java.util.UUID;

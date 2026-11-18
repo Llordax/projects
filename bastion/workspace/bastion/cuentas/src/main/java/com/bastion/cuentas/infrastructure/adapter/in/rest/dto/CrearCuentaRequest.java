@@ -1,4 +1,4 @@
-package com.bastion.cuentas.infrastructure.adapter.in.web.dto;
+package com.bastion.cuentas.infrastructure.adapter.in.rest.dto;
 
 import java.util.UUID;
 

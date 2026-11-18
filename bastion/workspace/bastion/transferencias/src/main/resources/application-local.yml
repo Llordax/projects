@@ -1,0 +1,20 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: bastion-transferencias
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bastion_transferencias
+    username: bastion_transferencias
+    password: bastion_transferencias_local
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true

@@ -1,4 +1,4 @@
-package com.bastion.cuentas.infrastructure.adapter.in.web;
+package com.bastion.cuentas.infrastructure.adapter.in.rest;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;

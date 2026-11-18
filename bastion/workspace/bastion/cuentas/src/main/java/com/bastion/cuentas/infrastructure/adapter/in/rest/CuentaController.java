@@ -1,4 +1,4 @@
-package com.bastion.cuentas.infrastructure.adapter.in.web;
+package com.bastion.cuentas.infrastructure.adapter.in.rest;
 
 import java.net.URI;
 import java.util.Currency;
@@ -22,10 +22,10 @@ import com.bastion.cuentas.application.port.in.CrearCuentaUseCase;
 import com.bastion.cuentas.application.port.in.DebitarCuentaUseCase;
 import com.bastion.cuentas.application.port.in.DesbloquearCuentaUseCase;
 import com.bastion.cuentas.domain.model.Cuenta;
-import com.bastion.cuentas.infrastructure.adapter.in.web.dto.CambioEstadoCuentaRequest;
-import com.bastion.cuentas.infrastructure.adapter.in.web.dto.CuentaResponse;
-import com.bastion.cuentas.infrastructure.adapter.in.web.dto.CrearCuentaRequest;
-import com.bastion.cuentas.infrastructure.adapter.in.web.dto.MovimientoCuentaRequest;
+import com.bastion.cuentas.infrastructure.adapter.in.rest.dto.CambioEstadoCuentaRequest;
+import com.bastion.cuentas.infrastructure.adapter.in.rest.dto.CrearCuentaRequest;
+import com.bastion.cuentas.infrastructure.adapter.in.rest.dto.CuentaResponse;
+import com.bastion.cuentas.infrastructure.adapter.in.rest.dto.MovimientoCuentaRequest;
 
 import jakarta.validation.Valid;
 

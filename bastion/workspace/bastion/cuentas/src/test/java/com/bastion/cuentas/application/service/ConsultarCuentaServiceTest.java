@@ -11,8 +11,8 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
+import com.bastion.cuentas.application.port.out.CuentaRepository;
 import com.bastion.cuentas.domain.model.Cuenta;
-import com.bastion.cuentas.domain.port.out.CuentaRepository;
 
 class ConsultarCuentaServiceTest {
 

@@ -10,10 +10,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.bastion.cuentas.application.exception.CuentaNoEncontradaException;
 import com.bastion.cuentas.application.port.in.DebitarCuentaUseCase;
+import com.bastion.cuentas.application.port.out.CuentaRepository;
 import com.bastion.cuentas.application.port.out.EventoOutboxPort;
 import com.bastion.cuentas.domain.model.Cuenta;
 import com.bastion.cuentas.domain.model.ReglaCuentaException;
-import com.bastion.cuentas.domain.port.out.CuentaRepository;
 import com.bastion.eventos.contrato.Evento;
 import com.bastion.eventos.contrato.TiposEvento;
 import com.bastion.eventos.contrato.cuentas.DebitoRealizadoData;

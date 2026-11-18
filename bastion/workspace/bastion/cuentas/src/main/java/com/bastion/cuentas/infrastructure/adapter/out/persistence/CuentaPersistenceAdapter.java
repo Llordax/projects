@@ -6,8 +6,8 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Repository;
 
+import com.bastion.cuentas.application.port.out.CuentaRepository;
 import com.bastion.cuentas.domain.model.Cuenta;
-import com.bastion.cuentas.domain.port.out.CuentaRepository;
 import com.bastion.cuentas.infrastructure.persistence.entity.CuentaJpaEntity;
 import com.bastion.cuentas.infrastructure.persistence.repository.CuentaSpringDataRepository;
 

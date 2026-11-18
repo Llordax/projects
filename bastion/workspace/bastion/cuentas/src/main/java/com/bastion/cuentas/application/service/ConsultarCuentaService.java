@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bastion.cuentas.application.port.in.ConsultarCuentaUseCase;
+import com.bastion.cuentas.application.port.out.CuentaRepository;
 import com.bastion.cuentas.domain.model.Cuenta;
-import com.bastion.cuentas.domain.port.out.CuentaRepository;
 
 @Service
 public class ConsultarCuentaService implements ConsultarCuentaUseCase {

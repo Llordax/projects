@@ -28,6 +28,8 @@
 		<item key="updateTextualMatches" value="false"/>
 		<item key="updateQualifiedNames" value="false"/>
 		<item key="patterns" value="*"/>
+		<item key="updateSimilarElements" value="false"/>
+		<item key="updateSimilarElementsMatchStrategy" value="1"/>
 	</section>
 	<section name="NewClassCreationWizard.dialogBounds">
 		<item key="DIALOG_X_ORIGIN" value="99"/>
@@ -68,7 +70,7 @@
 		<item key="pageIndex" value="3"/>
 	</section>
 	<section name="NewSourceFolderCreationWizard.dialogBounds">
-		<item key="DIALOG_X_ORIGIN" value="384"/>
+		<item key="DIALOG_X_ORIGIN" value="356"/>
 		<item key="DIALOG_Y_ORIGIN" value="124"/>
 		<item key="DIALOG_WIDTH" value="560"/>
 		<item key="DIALOG_HEIGHT" value="500"/>
