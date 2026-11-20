@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: bastion-antifraude
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bastion_antifraude
+    username: bastion_antifraude
+    password: bastion_antifraude_local
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: bastion-antifraude
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+bastion:
+  antifraude:
+    importe-maximo: 5000.00
