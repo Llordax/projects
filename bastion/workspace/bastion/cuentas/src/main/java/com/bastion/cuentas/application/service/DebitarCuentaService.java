@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.Currency;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,8 +28,7 @@ public class DebitarCuentaService implements DebitarCuentaUseCase {
 
     public DebitarCuentaService(
             CuentaRepository cuentaRepository,
-            EventoOutboxPort eventoOutboxPort
-    ) {
+            EventoOutboxPort eventoOutboxPort) {
         this.cuentaRepository = Objects.requireNonNull(
                 cuentaRepository,
                 "cuentaRepository no puede ser null"
@@ -41,17 +41,37 @@ public class DebitarCuentaService implements DebitarCuentaUseCase {
 
     @Override
     @Transactional
-    public Cuenta ejecutar(UUID cuentaId, UUID transferenciaId, BigDecimal importe) {
+    public Cuenta ejecutar(UUID cuentaId, UUID transferenciaId, BigDecimal importe, Currency moneda) {
         Objects.requireNonNull(cuentaId, "cuentaId no puede ser null");
         Objects.requireNonNull(transferenciaId, "transferenciaId no puede ser null");
 
-        Cuenta cuenta = cuentaRepository.buscarPorId(cuentaId)
-                .orElseThrow(() -> new CuentaNoEncontradaException(cuentaId));
+        Cuenta cuenta;
 
         try {
+            cuenta = cuentaRepository.buscarPorId(cuentaId)
+                    .orElseThrow(() -> new CuentaNoEncontradaException(cuentaId));
+        } catch (CuentaNoEncontradaException excepcion) {
+            registrarDebitoRechazado(
+                    cuentaId,
+                    transferenciaId,
+                    excepcion.getMessage()
+            );
+            throw excepcion;
+        }
+
+        try {
+            if (moneda != null) {
+                cuenta.validarMoneda(moneda);
+            }
             cuenta.debitar(importe);
         } catch (ReglaCuentaException excepcion) {
-            registrarDebitoRechazado(cuenta, transferenciaId, excepcion);
+            registrarDebitoRechazado(
+                    cuenta.id(),
+                    transferenciaId,
+                    excepcion.getMessage() != null
+                            ? excepcion.getMessage()
+                            : excepcion.codigo().name()
+            );
             throw excepcion;
         }
 
@@ -79,25 +99,21 @@ public class DebitarCuentaService implements DebitarCuentaUseCase {
     }
 
     private void registrarDebitoRechazado(
-            Cuenta cuenta,
+            UUID cuentaId,
             UUID transferenciaId,
-            ReglaCuentaException excepcion
+            String motivo
     ) {
         UUID eventId = UUID.randomUUID();
-        String motivo = excepcion.getMessage() != null
-                ? excepcion.getMessage()
-                : excepcion.codigo().name();
-
         Evento<DebitoRechazadoData> evento = new Evento<>(
                 eventId,
                 TiposEvento.DEBITO_RECHAZADO,
                 1,
                 Instant.now(),
-                cuenta.id().toString(),
+                cuentaId.toString(),
                 transferenciaId,
                 new DebitoRechazadoData(
                         transferenciaId,
-                        cuenta.id(),
+                        cuentaId,
                         motivo
                 )
         );

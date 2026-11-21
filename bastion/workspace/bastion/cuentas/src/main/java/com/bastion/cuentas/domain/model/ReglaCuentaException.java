@@ -17,6 +17,7 @@ public class ReglaCuentaException extends RuntimeException {
 
     public enum Codigo {
         CUENTA_BLOQUEADA,
-        SALDO_INSUFICIENTE
+        SALDO_INSUFICIENTE,
+        MONEDA_INCOMPATIBLE
     }
 }

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.Currency;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,8 @@ import com.bastion.cuentas.domain.model.Cuenta;
 import com.bastion.eventos.contrato.Evento;
 import com.bastion.eventos.contrato.TiposEvento;
 import com.bastion.eventos.contrato.cuentas.CreditoRealizadoData;
+import com.bastion.eventos.contrato.cuentas.CreditoRechazadoData;
+import com.bastion.cuentas.domain.model.ReglaCuentaException;
 
 @Service
 public class AcreditarCuentaService implements AcreditarCuentaUseCase {
@@ -25,8 +28,7 @@ public class AcreditarCuentaService implements AcreditarCuentaUseCase {
 
     public AcreditarCuentaService(
             CuentaRepository cuentaRepository,
-            EventoOutboxPort eventoOutboxPort
-    ) {
+            EventoOutboxPort eventoOutboxPort) {
         this.cuentaRepository = Objects.requireNonNull(
                 cuentaRepository,
                 "cuentaRepository no puede ser null"
@@ -39,14 +41,33 @@ public class AcreditarCuentaService implements AcreditarCuentaUseCase {
 
     @Override
     @Transactional
-    public Cuenta ejecutar(UUID cuentaId, UUID transferenciaId, BigDecimal importe) {
+    public Cuenta ejecutar(UUID cuentaId, UUID transferenciaId, BigDecimal importe, Currency moneda) {
         Objects.requireNonNull(cuentaId, "cuentaId no puede ser null");
         Objects.requireNonNull(transferenciaId, "transferenciaId no puede ser null");
 
-        Cuenta cuenta = cuentaRepository.buscarPorId(cuentaId)
-                .orElseThrow(() -> new CuentaNoEncontradaException(cuentaId));
+        Cuenta cuenta;
 
-        cuenta.acreditar(importe);
+        try {
+            cuenta = cuentaRepository.buscarPorId(cuentaId)
+                    .orElseThrow(() -> new CuentaNoEncontradaException(cuentaId));
+        } catch (CuentaNoEncontradaException excepcion) {
+            registrarCreditoRechazado(
+                    cuentaId,
+                    transferenciaId,
+                    excepcion.getMessage()
+            );
+            throw excepcion;
+        }
+
+        try {
+            if (moneda != null) {
+                cuenta.validarMoneda(moneda);
+            }
+            cuenta.acreditar(importe);
+        } catch (ReglaCuentaException excepcion) {
+            registrarCreditoRechazado(cuentaId, transferenciaId, excepcion.getMessage());
+            throw excepcion;
+        }
         Cuenta cuentaGuardada = cuentaRepository.guardar(cuenta);
 
         UUID eventId = UUID.randomUUID();
@@ -68,5 +89,28 @@ public class AcreditarCuentaService implements AcreditarCuentaUseCase {
 
         eventoOutboxPort.registrar(evento);
         return cuentaGuardada;
+    }
+
+    private void registrarCreditoRechazado(
+            UUID cuentaId,
+            UUID transferenciaId,
+            String motivo
+    ) {
+        UUID eventId = UUID.randomUUID();
+        Evento<CreditoRechazadoData> evento = new Evento<>(
+                eventId,
+                TiposEvento.CREDITO_RECHAZADO,
+                1,
+                Instant.now(),
+                cuentaId.toString(),
+                transferenciaId,
+                new CreditoRechazadoData(
+                        transferenciaId,
+                        cuentaId,
+                        motivo
+                )
+        );
+
+        eventoOutboxPort.registrarRechazo(evento);
     }
 }

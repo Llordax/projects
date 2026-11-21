@@ -57,6 +57,16 @@ public class Cuenta {
         saldo = saldo.subtract(importe);
     }
 
+    public void validarMoneda(Currency monedaSolicitada) {
+        Objects.requireNonNull(monedaSolicitada, "monedaSolicitada no puede ser null");
+        if (!moneda.equals(monedaSolicitada)) {
+            throw new ReglaCuentaException(
+                    ReglaCuentaException.Codigo.MONEDA_INCOMPATIBLE,
+                    "La moneda de la operación no coincide con la moneda de la cuenta"
+            );
+        }
+    }
+
     public void acreditar(BigDecimal importe) {
         validarImportePositivo(importe);
         saldo = saldo.add(importe);

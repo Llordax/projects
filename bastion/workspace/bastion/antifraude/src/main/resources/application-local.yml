@@ -1,3 +1,12 @@
+server:
+  port: 8084
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
 spring:
   application:
     name: bastion-antifraude
@@ -16,7 +25,7 @@ spring:
     bootstrap-servers: localhost:9092
     consumer:
       group-id: bastion-antifraude
-      auto-offset-reset: earliest
+      auto-offset-reset: latest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 

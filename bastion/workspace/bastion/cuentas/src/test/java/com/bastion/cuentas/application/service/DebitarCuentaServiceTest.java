@@ -117,7 +117,7 @@ class DebitarCuentaServiceTest {
     }
 
     @Test
-    void debitarCuentaInexistenteLanzaExcepcionYNoRegistraEvento() {
+    void debitarCuentaInexistenteRegistraRechazoYLanzaExcepcion() {
         CuentaRepository cuentaRepository = mock(CuentaRepository.class);
         EventoOutboxPort eventoOutboxPort = mock(EventoOutboxPort.class);
         UUID cuentaId = UUID.randomUUID();
@@ -139,7 +139,7 @@ class DebitarCuentaServiceTest {
 
         verify(cuentaRepository, never()).guardar(any(Cuenta.class));
         verify(eventoOutboxPort, never()).registrar(any(Evento.class));
-        verify(eventoOutboxPort, never()).registrarRechazo(any(Evento.class));
+        verify(eventoOutboxPort).registrarRechazo(any(Evento.class));
     }
 
     private Cuenta nuevaCuenta(UUID cuentaId) {
